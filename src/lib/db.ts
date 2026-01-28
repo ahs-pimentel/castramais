@@ -10,7 +10,7 @@ const AppDataSource = new DataSource({
   synchronize: process.env.NODE_ENV === 'development',
   logging: process.env.NODE_ENV === 'development',
   entities: [User, Tutor, Animal],
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  ssl: false,
 })
 
 let initialized = false
