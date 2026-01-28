@@ -48,6 +48,7 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
     peso: animal?.peso?.toString() || '',
     idadeAnos: animal?.idadeAnos?.toString() || '',
     idadeMeses: animal?.idadeMeses?.toString() || '',
+    registroSinpatinhas: animal?.registroSinpatinhas || '',
     observacoes: animal?.observacoes || '',
     status: animal?.status || 'pendente',
     dataAgendamento: animal?.dataAgendamento?.split('T')[0] || '',
@@ -152,6 +153,7 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
           peso: formData.peso ? parseFloat(formData.peso) : undefined,
           idadeAnos: formData.idadeAnos ? parseInt(formData.idadeAnos) : undefined,
           idadeMeses: formData.idadeMeses ? parseInt(formData.idadeMeses) : undefined,
+          registroSinpatinhas: formData.registroSinpatinhas,
           observacoes: formData.observacoes || undefined,
         }
 
@@ -185,6 +187,7 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
           peso: formData.peso ? parseFloat(formData.peso) : null,
           idadeAnos: formData.idadeAnos ? parseInt(formData.idadeAnos) : null,
           idadeMeses: formData.idadeMeses ? parseInt(formData.idadeMeses) : null,
+          registroSinpatinhas: formData.registroSinpatinhas || null,
           observacoes: formData.observacoes || null,
           status: formData.status as 'pendente' | 'agendado' | 'realizado' | 'cancelado',
           dataAgendamento: formData.dataAgendamento || null,

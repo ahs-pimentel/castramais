@@ -73,6 +73,7 @@ export interface UpdateAnimalDTO {
   peso?: number | null
   idadeAnos?: number | null
   idadeMeses?: number | null
+  registroSinpatinhas?: string | null
   status?: 'pendente' | 'agendado' | 'realizado' | 'cancelado'
   dataAgendamento?: string | null
   dataRealizacao?: string | null
