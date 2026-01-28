@@ -1,35 +1,46 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:16-alpine
-    container_name: castrapet-db
+    container_name: castramais-db
+    restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: castrapet123
-      POSTGRES_DB: castrapet
+      POSTGRES_USER: castramais
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-defaultpass123}
+      POSTGRES_DB: castramais
     volumes:
-      - castrapet_db_data:/var/lib/postgresql/data
-    ports:
-      - "5433:5432"
+      - castramais_db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U castramais"]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - castramais-network
 
   app:
-    build: .
-    container_name: castrapet-app
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: castramais-app
+    restart: always
     ports:
-      - "3001:3000"
+      - "80:3000"
     environment:
-      DATABASE_URL: postgresql://postgres:castrapet123@db:5432/castrapet
-      NEXTAUTH_SECRET: castrapet-secret-key-for-development-only-32chars
-      NEXTAUTH_URL: http://localhost:3001
+      DATABASE_URL: postgresql://castramais:${DB_PASSWORD:-defaultpass123}@db:5432/castramais
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-default-secret-change-in-production}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost}
+      NODE_ENV: production
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@castramais.com.br}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - castramais-network
+
+networks:
+  castramais-network:
+    driver: bridge
 
 volumes:
-  castrapet_db_data:
+  castramais_db_data:
