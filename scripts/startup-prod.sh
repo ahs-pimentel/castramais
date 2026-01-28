@@ -7,4 +7,4 @@ echo "Executando seed..."
 node scripts/seed-prod.mjs || echo "Seed concluído"
 
 echo "Iniciando aplicação..."
-exec node server.js
+exec npm start

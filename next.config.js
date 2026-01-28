@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
-  serverExternalPackages: ['typeorm', 'pg'],
+  serverExternalPackages: ['typeorm', 'pg', 'reflect-metadata'],
 }
 
 module.exports = nextConfig

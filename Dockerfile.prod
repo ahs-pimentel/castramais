@@ -21,14 +21,11 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Instalar dependências de produção para o seed
-COPY package*.json ./
-RUN npm ci --only=production
-
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/scripts/seed-prod.mjs ./scripts/
+COPY --from=builder /app/scripts ./scripts
 
 # Script de inicialização
 COPY scripts/startup-prod.sh ./
