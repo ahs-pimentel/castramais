@@ -5,7 +5,7 @@ services:
     restart: always
     environment:
       POSTGRES_USER: castramais
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-defaultpass123}
+      POSTGRES_PASSWORD: c9dd730d4262ee476d021e72d81597b5200c8e52eb5e721940f9fb246fe641b1
       POSTGRES_DB: castramais
     volumes:
       - castramais_db_data:/var/lib/postgresql/data
@@ -26,12 +26,12 @@ services:
     ports:
       - "80:3000"
     environment:
-      DATABASE_URL: postgresql://castramais:${DB_PASSWORD:-defaultpass123}@db:5432/castramais
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-default-secret-change-in-production}
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost}
+      DATABASE_URL: postgresql://castramais:c9dd730d4262ee476d021e72d81597b5200c8e52eb5e721940f9fb246fe641b1@db:5432/castramais
+      NEXTAUTH_SECRET: d28ae335f31f21d9f5eff6a210436314d5b61912fd5add3e3b88302dbd63f868
+      NEXTAUTH_URL: http://castramais.odois.com.br
       NODE_ENV: production
-      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@castramais.com.br}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      ADMIN_EMAIL: admin@castramais.com.br
+      ADMIN_PASSWORD: 2l2SjbeeFfEoB66G
     depends_on:
       db:
         condition: service_healthy
