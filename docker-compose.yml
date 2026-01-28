@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: castrapet-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: castrapet123
+      POSTGRES_DB: castrapet
+    volumes:
+      - castrapet_db_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: castrapet-app
+    ports:
+      - "3001:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:castrapet123@db:5432/castrapet
+      NEXTAUTH_SECRET: castrapet-secret-key-for-development-only-32chars
+      NEXTAUTH_URL: http://localhost:3001
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  castrapet_db_data:
