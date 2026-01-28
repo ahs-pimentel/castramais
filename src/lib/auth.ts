@@ -1,8 +1,14 @@
 import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
-import { getRepository } from './db'
-import { User } from '@/entities/User'
+import pg from 'pg'
+
+const { Pool } = pg
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: false
+})
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -22,10 +28,12 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          const userRepository = await getRepository(User)
-          const user = await userRepository.findOne({
-            where: { email: credentials.email },
-          })
+          const result = await pool.query(
+            'SELECT id, email, password, nome FROM users WHERE email = $1',
+            [credentials.email]
+          )
+
+          const user = result.rows[0]
 
           console.log('Usuário encontrado:', user ? 'SIM' : 'NÃO')
 
@@ -33,7 +41,7 @@ export const authOptions: NextAuthOptions = {
             return null
           }
 
-          console.log('Hash no banco:', user.password)
+          console.log('Hash no banco:', user.password?.substring(0, 20) + '...')
 
           const isValidPassword = await bcrypt.compare(
             credentials.password,
