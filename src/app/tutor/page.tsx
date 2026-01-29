@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { PawPrint, ArrowRight, Loader2, Smartphone } from 'lucide-react'
+import Link from 'next/link'
+import { PawPrint, ArrowRight, Loader2, Smartphone, UserPlus } from 'lucide-react'
 import { formatCPF, validateCPF } from '@/lib/utils'
 
 export default function TutorLoginPage() {
@@ -128,10 +129,21 @@ export default function TutorLoginPage() {
       </div>
 
       {/* Footer */}
-      <div className="py-6 text-center">
-        <p className="text-xs text-gray-400">
-          Só consegue acessar quem tem animal cadastrado
-        </p>
+      <div className="py-6 px-6">
+        <div className="max-w-md mx-auto">
+          <div className="border-t border-gray-200 pt-6">
+            <p className="text-center text-sm text-gray-500 mb-3">
+              Ainda não tem cadastro?
+            </p>
+            <Link
+              href="/tutor/cadastro"
+              className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-700 font-semibold py-3 px-6 rounded-2xl hover:bg-gray-200 transition-all"
+            >
+              <UserPlus className="w-5 h-5" />
+              Criar minha conta
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   )
