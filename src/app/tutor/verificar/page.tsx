@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, RefreshCw, CheckCircle2 } from 'lucide-react'
+import { ArrowLeft, Loader2, RefreshCw, CheckCircle2, MessageCircle, Mail } from 'lucide-react'
 import Link from 'next/link'
 
 export default function VerificarCodigoPage() {
@@ -14,11 +14,15 @@ export default function VerificarCodigoPage() {
   const [countdown, setCountdown] = useState(60)
   const [telefone, setTelefone] = useState('')
   const [cpf, setCpf] = useState('')
+  const [metodoAtual, setMetodoAtual] = useState<'whatsapp' | 'email'>('whatsapp')
+  const [temEmail, setTemEmail] = useState(false)
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
 
   useEffect(() => {
     const storedCpf = sessionStorage.getItem('tutor_cpf')
     const storedTelefone = sessionStorage.getItem('tutor_telefone')
+    const storedMetodo = sessionStorage.getItem('tutor_metodo')
+    const storedTemEmail = sessionStorage.getItem('tutor_tem_email')
 
     if (!storedCpf) {
       router.push('/tutor')
@@ -27,6 +31,8 @@ export default function VerificarCodigoPage() {
 
     setCpf(storedCpf)
     setTelefone(storedTelefone || '')
+    setMetodoAtual((storedMetodo as 'whatsapp' | 'email') || 'whatsapp')
+    setTemEmail(storedTemEmail === 'true')
     inputRefs.current[0]?.focus()
   }, [router])
 
@@ -106,17 +112,26 @@ export default function VerificarCodigoPage() {
     }
   }
 
-  const handleResend = async () => {
+  const handleResend = async (preferencia: 'whatsapp' | 'email' = 'whatsapp') => {
     setResending(true)
     try {
-      await fetch('/api/tutor/enviar-codigo', {
+      const res = await fetch('/api/tutor/enviar-codigo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cpf }),
+        body: JSON.stringify({ cpf, preferencia }),
       })
-      setCountdown(60)
-      setCode(['', '', '', '', '', ''])
-      inputRefs.current[0]?.focus()
+
+      const data = await res.json()
+
+      if (res.ok) {
+        setMetodoAtual(data.metodoEnvio || preferencia)
+        setTemEmail(data.temEmail || false)
+        setCountdown(60)
+        setCode(['', '', '', '', '', ''])
+        inputRefs.current[0]?.focus()
+      } else {
+        setError(data.error || 'Erro ao reenviar código')
+      }
     } catch {
       setError('Erro ao reenviar código')
     } finally {
@@ -144,14 +159,22 @@ export default function VerificarCodigoPage() {
       {/* Content */}
       <div className="flex-1 px-6 pt-8">
         <div className="max-w-md mx-auto text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle2 className="w-8 h-8 text-green-600" />
+          <div className={`w-16 h-16 ${metodoAtual === 'whatsapp' ? 'bg-green-100' : 'bg-blue-100'} rounded-full flex items-center justify-center mx-auto mb-4`}>
+            {metodoAtual === 'whatsapp' ? (
+              <MessageCircle className="w-8 h-8 text-green-600" />
+            ) : (
+              <Mail className="w-8 h-8 text-blue-600" />
+            )}
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             Código enviado!
           </h1>
           <p className="text-gray-500 mb-8">
-            Digite o código de 6 dígitos enviado para {maskedPhone}
+            {metodoAtual === 'whatsapp' ? (
+              <>Digite o código de 6 dígitos enviado para {maskedPhone}</>
+            ) : (
+              <>Digite o código de 6 dígitos enviado para seu email</>
+            )}
           </p>
 
           {/* Code inputs */}
@@ -186,24 +209,43 @@ export default function VerificarCodigoPage() {
           )}
 
           {/* Resend */}
-          <div className="text-center">
+          <div className="text-center space-y-3">
             {countdown > 0 ? (
               <p className="text-sm text-gray-500">
                 Reenviar código em <span className="font-semibold">{countdown}s</span>
               </p>
             ) : (
-              <button
-                onClick={handleResend}
-                disabled={resending}
-                className="inline-flex items-center gap-2 text-primary font-medium hover:underline disabled:opacity-50"
-              >
-                {resending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4" />
+              <div className="space-y-2">
+                <button
+                  onClick={() => handleResend('whatsapp')}
+                  disabled={resending}
+                  className="inline-flex items-center gap-2 text-green-600 font-medium hover:underline disabled:opacity-50"
+                >
+                  {resending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <MessageCircle className="w-4 h-4" />
+                  )}
+                  Reenviar por WhatsApp
+                </button>
+
+                {temEmail && (
+                  <div>
+                    <button
+                      onClick={() => handleResend('email')}
+                      disabled={resending}
+                      className="inline-flex items-center gap-2 text-blue-600 font-medium hover:underline disabled:opacity-50"
+                    >
+                      {resending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Mail className="w-4 h-4" />
+                      )}
+                      Enviar por Email
+                    </button>
+                  </div>
                 )}
-                Reenviar código
-              </button>
+              </div>
             )}
           </div>
         </div>
@@ -212,7 +254,9 @@ export default function VerificarCodigoPage() {
       {/* Footer */}
       <div className="py-6 text-center">
         <p className="text-xs text-gray-400">
-          Não recebeu? Verifique se o WhatsApp está correto
+          {metodoAtual === 'whatsapp'
+            ? 'Não recebeu? Verifique se o WhatsApp está correto'
+            : 'Não recebeu? Verifique sua caixa de spam'}
         </p>
       </div>
     </div>

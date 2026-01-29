@@ -28,10 +28,20 @@ services:
     environment:
       DATABASE_URL: postgresql://castramais:c9dd730d4262ee476d021e72d81597b5200c8e52eb5e721940f9fb246fe641b1@db:5432/castramais
       NEXTAUTH_SECRET: d28ae335f31f21d9f5eff6a210436314d5b61912fd5add3e3b88302dbd63f868
-      NEXTAUTH_URL: http://castramais.odois.com.br
+      NEXTAUTH_URL: https://castramais.odois.com.br
       NODE_ENV: production
       ADMIN_EMAIL: admin@castramais.com.br
       ADMIN_PASSWORD: 2l2SjbeeFfEoB66G
+      # Evolution API (WhatsApp)
+      EVOLUTION_API_URL: https://evo.odois.com.br
+      EVOLUTION_API_KEY: a87ad2de419f678eccfdd25962db593cb6cbb7523a44dd57fbc9bfcbd938d1b1
+      EVOLUTION_INSTANCE: castramais
+      # SMTP (Email) - Configurar com seu provedor
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-noreply@castramais.com.br}
     depends_on:
       db:
         condition: service_healthy

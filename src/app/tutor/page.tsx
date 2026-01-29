@@ -40,9 +40,15 @@ export default function TutorLoginPage() {
         // Salvar CPF temporariamente e ir para verificação
         sessionStorage.setItem('tutor_cpf', cpf)
         sessionStorage.setItem('tutor_telefone', data.telefone || '')
+        sessionStorage.setItem('tutor_metodo', data.metodoEnvio || 'whatsapp')
+        sessionStorage.setItem('tutor_tem_email', data.temEmail ? 'true' : 'false')
         router.push('/tutor/verificar')
+      } else if (data.cadastroNecessario) {
+        // CPF não encontrado - redirecionar para cadastro
+        sessionStorage.setItem('cadastro_cpf', cpf)
+        router.push('/tutor/cadastro')
       } else {
-        setError(data.error || 'CPF não encontrado no sistema')
+        setError(data.error || 'Erro ao verificar CPF')
       }
     } catch {
       setError('Erro ao conectar. Tente novamente.')
