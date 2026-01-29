@@ -39,8 +39,8 @@ services:
       # SMTP (Email) - Ethereal para testes
       SMTP_HOST: smtp.ethereal.email
       SMTP_PORT: 587
-      SMTP_USER: ardith33@ethereal.email
-      SMTP_PASS: EM7g7AjuTvNjCV9Fsy
+      SMTP_USER: jerome.reilly7@ethereal.email
+      SMTP_PASS: WtpVeH9hJkdkm5TYGQ
       SMTP_FROM: noreply@castramais.com.br
     depends_on:
       db:
