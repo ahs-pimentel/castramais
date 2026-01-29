@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getRepository } from '@/lib/db'
-import { Animal } from '@/entities'
+import { pool } from '@/lib/pool'
 import { extrairToken, verificarToken } from '@/lib/tutor-auth'
+import { v4 as uuidv4 } from 'uuid'
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,13 +47,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Raça é obrigatória' }, { status: 400 })
     }
 
-    const animalRepository = await getRepository(Animal)
-
     // Verificar se RG já existe
-    const existingAnimal = await animalRepository.findOne({
-      where: { registroSinpatinhas },
-    })
-    if (existingAnimal) {
+    const existeResult = await pool.query(
+      'SELECT id FROM animais WHERE "registroSinpatinhas" = $1',
+      [registroSinpatinhas]
+    )
+    if (existeResult.rows.length > 0) {
       return NextResponse.json(
         { error: 'Este RG Animal já está cadastrado no sistema' },
         { status: 409 }
@@ -61,23 +60,30 @@ export async function POST(request: NextRequest) {
     }
 
     // Criar animal vinculado ao tutor logado
-    const animal = animalRepository.create({
-      nome: nome.trim(),
-      especie,
-      raca: raca.trim(),
-      sexo,
-      peso: peso ? parseFloat(peso) : null,
-      idadeAnos: idadeAnos ? parseInt(idadeAnos) : null,
-      idadeMeses: idadeMeses ? parseInt(idadeMeses) : null,
-      registroSinpatinhas: registroSinpatinhas.trim(),
-      observacoes: observacoes?.trim() || null,
-      tutorId: payload.tutorId,
-      status: 'pendente',
-    })
+    const animalId = uuidv4()
+    const result = await pool.query(
+      `INSERT INTO animais (
+        id, nome, especie, raca, sexo, peso, "idadeAnos", "idadeMeses",
+        "registroSinpatinhas", observacoes, "tutorId", status, "createdAt", "updatedAt"
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+      RETURNING *`,
+      [
+        animalId,
+        nome.trim(),
+        especie,
+        raca.trim(),
+        sexo,
+        peso ? parseFloat(peso) : null,
+        idadeAnos ? parseInt(idadeAnos) : null,
+        idadeMeses ? parseInt(idadeMeses) : null,
+        registroSinpatinhas.trim(),
+        observacoes?.trim() || null,
+        payload.tutorId,
+        'pendente',
+      ]
+    )
 
-    const savedAnimal = await animalRepository.save(animal)
-
-    return NextResponse.json(savedAnimal, { status: 201 })
+    return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error) {
     console.error('Erro ao cadastrar animal:', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })

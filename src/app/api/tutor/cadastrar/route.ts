@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getRepository } from '@/lib/db'
-import { Tutor } from '@/entities'
+import { pool } from '@/lib/pool'
 import { gerarCodigo, salvarCodigo } from '@/lib/tutor-auth'
 import { enviarCodigoVerificacao } from '@/lib/notifications'
 import { cleanCPF, validateCPF } from '@/lib/utils'
+import { v4 as uuidv4 } from 'uuid'
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,12 +25,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar se CPF já existe
-    const tutorRepository = await getRepository(Tutor)
-    const tutorExistente = await tutorRepository.findOne({
-      where: { cpf: cpfLimpo },
-    })
+    const existeResult = await pool.query(
+      'SELECT id FROM tutores WHERE cpf = $1',
+      [cpfLimpo]
+    )
 
-    if (tutorExistente) {
+    if (existeResult.rows.length > 0) {
       return NextResponse.json(
         { error: 'CPF já cadastrado no sistema' },
         { status: 409 }
@@ -40,18 +40,22 @@ export async function POST(request: NextRequest) {
     // Limpar telefone
     const telefoneLimpo = telefone.replace(/\D/g, '')
 
-    // Criar tutor
-    const novoTutor = tutorRepository.create({
-      nome: nome.trim(),
-      cpf: cpfLimpo,
-      telefone: telefoneLimpo,
-      email: email?.trim() || null,
-      endereco: endereco.trim(),
-      cidade: cidade.trim(),
-      bairro: bairro.trim(),
-    })
-
-    await tutorRepository.save(novoTutor)
+    // Criar tutor usando raw SQL
+    const tutorId = uuidv4()
+    await pool.query(
+      `INSERT INTO tutores (id, nome, cpf, telefone, email, endereco, cidade, bairro, "createdAt")
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
+      [
+        tutorId,
+        nome.trim(),
+        cpfLimpo,
+        telefoneLimpo,
+        email?.trim() || null,
+        endereco.trim(),
+        cidade.trim(),
+        bairro.trim(),
+      ]
+    )
 
     // Gerar e enviar código de verificação
     const codigo = gerarCodigo()
@@ -73,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       message: 'Cadastro realizado com sucesso',
-      tutorId: novoTutor.id,
+      tutorId: tutorId,
       telefone: telefoneMascarado,
       codigoEnviado: resultado.success,
       metodoEnvio: resultado.metodo,

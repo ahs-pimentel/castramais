@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getRepository } from '@/lib/db'
-import { Animal } from '@/entities'
+import { pool } from '@/lib/pool'
 import { extrairToken, verificarToken } from '@/lib/tutor-auth'
 
 export async function GET(
@@ -21,14 +20,13 @@ export async function GET(
       return NextResponse.json({ error: 'Token inválido' }, { status: 401 })
     }
 
-    const animalRepository = await getRepository(Animal)
+    // Buscar animal usando raw SQL (garantindo que pertence ao tutor)
+    const result = await pool.query(
+      `SELECT * FROM animais WHERE id = $1 AND "tutorId" = $2`,
+      [id, payload.tutorId]
+    )
 
-    const animal = await animalRepository.findOne({
-      where: {
-        id,
-        tutorId: payload.tutorId, // Garante que o animal pertence ao tutor
-      },
-    })
+    const animal = result.rows[0]
 
     if (!animal) {
       return NextResponse.json({ error: 'Animal não encontrado' }, { status: 404 })

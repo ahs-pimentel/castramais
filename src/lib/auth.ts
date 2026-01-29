@@ -1,14 +1,7 @@
 import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
-import pg from 'pg'
-
-const { Pool } = pg
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: false
-})
+import { pool } from './pool'
 
 export const authOptions: NextAuthOptions = {
   providers: [

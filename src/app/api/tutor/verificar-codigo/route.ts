@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getRepository } from '@/lib/db'
-import { Tutor } from '@/entities'
+import { pool } from '@/lib/pool'
 import { verificarCodigo, gerarToken } from '@/lib/tutor-auth'
 import { cleanCPF } from '@/lib/utils'
 
@@ -21,11 +20,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Código inválido ou expirado' }, { status: 401 })
     }
 
-    // Buscar tutor
-    const tutorRepository = await getRepository(Tutor)
-    const tutor = await tutorRepository.findOne({
-      where: { cpf: cpfLimpo },
-    })
+    // Buscar tutor usando raw SQL
+    const result = await pool.query(
+      'SELECT id, cpf, nome FROM tutores WHERE cpf = $1',
+      [cpfLimpo]
+    )
+
+    const tutor = result.rows[0]
 
     if (!tutor) {
       return NextResponse.json({ error: 'Tutor não encontrado' }, { status: 404 })

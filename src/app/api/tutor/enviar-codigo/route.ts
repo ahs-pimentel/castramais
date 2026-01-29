@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getRepository } from '@/lib/db'
-import { Tutor } from '@/entities'
+import { pool } from '@/lib/pool'
 import { gerarCodigo, salvarCodigo } from '@/lib/tutor-auth'
 import { enviarCodigoVerificacao } from '@/lib/notifications'
 import { cleanCPF } from '@/lib/utils'
@@ -15,11 +14,14 @@ export async function POST(request: NextRequest) {
     }
 
     const cpfLimpo = cleanCPF(cpf)
-    const tutorRepository = await getRepository(Tutor)
 
-    const tutor = await tutorRepository.findOne({
-      where: { cpf: cpfLimpo },
-    })
+    // Buscar tutor por CPF usando raw SQL
+    const result = await pool.query(
+      'SELECT id, nome, cpf, telefone, email FROM tutores WHERE cpf = $1',
+      [cpfLimpo]
+    )
+
+    const tutor = result.rows[0]
 
     if (!tutor) {
       // Retornar indicação de que precisa cadastrar
