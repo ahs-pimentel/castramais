@@ -29,9 +29,9 @@ async function seed() {
       )
     `)
 
-    // Tabela tutor
+    // Tabela tutores
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS tutor (
+      CREATE TABLE IF NOT EXISTS tutores (
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
         nome VARCHAR(255) NOT NULL,
         cpf VARCHAR(14) UNIQUE NOT NULL,
@@ -44,9 +44,9 @@ async function seed() {
       )
     `)
 
-    // Tabela animal
+    // Tabela animais
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS animal (
+      CREATE TABLE IF NOT EXISTS animais (
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
         nome VARCHAR(255) NOT NULL,
         especie VARCHAR(20) NOT NULL,
@@ -60,7 +60,7 @@ async function seed() {
         "dataAgendamento" DATE,
         "dataRealizacao" DATE,
         observacoes TEXT,
-        "tutorId" UUID REFERENCES tutor(id),
+        "tutorId" UUID REFERENCES tutores(id),
         "createdAt" TIMESTAMP DEFAULT NOW(),
         "updatedAt" TIMESTAMP DEFAULT NOW()
       )
