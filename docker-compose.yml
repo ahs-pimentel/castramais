@@ -36,12 +36,12 @@ services:
       EVOLUTION_API_URL: https://evo.odois.com.br
       EVOLUTION_API_KEY: a87ad2de419f678eccfdd25962db593cb6cbb7523a44dd57fbc9bfcbd938d1b1
       EVOLUTION_INSTANCE: castramais
-      # SMTP (Email) - Configurar com seu provedor
-      SMTP_HOST: ${SMTP_HOST:-}
-      SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_USER: ${SMTP_USER:-}
-      SMTP_PASS: ${SMTP_PASS:-}
-      SMTP_FROM: ${SMTP_FROM:-noreply@castramais.com.br}
+      # SMTP (Email) - Ethereal para testes
+      SMTP_HOST: smtp.ethereal.email
+      SMTP_PORT: 587
+      SMTP_USER: ardith33@ethereal.email
+      SMTP_PASS: EM7g7AjuTvNjCV9Fsy
+      SMTP_FROM: noreply@castramais.com.br
     depends_on:
       db:
         condition: service_healthy
