@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ChevronRight,
@@ -12,7 +12,8 @@ import {
   PawPrint,
   HelpCircle,
   ExternalLink,
-  AlertCircle
+  AlertCircle,
+  MapPin
 } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
@@ -21,6 +22,7 @@ import { Card, CardContent } from './ui/card'
 import { OnboardingSinpatinhas } from './onboarding-sinpatinhas'
 import { CreateAnimalDTO } from '@/lib/types'
 import { formatCPF, cleanCPF, validateCPF } from '@/lib/utils'
+import { formatarCEP } from '@/lib/cep'
 
 const especieOptions = [
   { value: 'cachorro', label: 'Cachorro' },
@@ -44,7 +46,9 @@ export function CadastroWizard() {
   const [showOnboarding, setShowOnboarding] = useState(true)
   const [loading, setLoading] = useState(false)
   const [searchingTutor, setSearchingTutor] = useState(false)
+  const [searchingCep, setSearchingCep] = useState(false)
   const [tutorFound, setTutorFound] = useState<boolean | null>(null)
+  const [cepError, setCepError] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const [formData, setFormData] = useState({
@@ -56,9 +60,13 @@ export function CadastroWizard() {
     tutorNome: '',
     tutorTelefone: '',
     tutorEmail: '',
+    tutorCep: '',
     tutorEndereco: '',
-    tutorCidade: '',
+    tutorNumero: '',
+    tutorComplemento: '',
     tutorBairro: '',
+    tutorCidade: '',
+    tutorUf: '',
     // Animal
     nome: '',
     especie: 'cachorro',
@@ -89,6 +97,15 @@ export function CadastroWizard() {
     }
   }
 
+  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 8)
+    setFormData((prev) => ({ ...prev, tutorCep: value }))
+    setCepError('')
+    if (value.length === 8) {
+      searchCep(value)
+    }
+  }
+
   const searchTutor = async (cpf: string) => {
     setSearchingTutor(true)
     try {
@@ -113,9 +130,13 @@ export function CadastroWizard() {
           tutorNome: '',
           tutorTelefone: '',
           tutorEmail: '',
+          tutorCep: '',
           tutorEndereco: '',
-          tutorCidade: '',
+          tutorNumero: '',
+          tutorComplemento: '',
           tutorBairro: '',
+          tutorCidade: '',
+          tutorUf: '',
         }))
         setTutorFound(false)
       }
@@ -123,6 +144,30 @@ export function CadastroWizard() {
       setTutorFound(false)
     } finally {
       setSearchingTutor(false)
+    }
+  }
+
+  const searchCep = async (cep: string) => {
+    setSearchingCep(true)
+    setCepError('')
+    try {
+      const res = await fetch(`/api/cep/${cep}`)
+      if (res.ok) {
+        const data = await res.json()
+        setFormData((prev) => ({
+          ...prev,
+          tutorEndereco: data.logradouro || '',
+          tutorBairro: data.bairro || '',
+          tutorCidade: data.cidade || '',
+          tutorUf: data.uf || '',
+        }))
+      } else {
+        setCepError('CEP não encontrado')
+      }
+    } catch {
+      setCepError('Erro ao buscar CEP')
+    } finally {
+      setSearchingCep(false)
     }
   }
 
@@ -145,9 +190,11 @@ export function CadastroWizard() {
       if (tutorFound === false) {
         if (!formData.tutorNome.trim()) newErrors.tutorNome = 'Nome é obrigatório'
         if (!formData.tutorTelefone.trim()) newErrors.tutorTelefone = 'Telefone é obrigatório'
+        if (!formData.tutorCep || formData.tutorCep.length !== 8) newErrors.tutorCep = 'CEP é obrigatório'
         if (!formData.tutorEndereco.trim()) newErrors.tutorEndereco = 'Endereço é obrigatório'
-        if (!formData.tutorCidade.trim()) newErrors.tutorCidade = 'Cidade é obrigatória'
+        if (!formData.tutorNumero.trim()) newErrors.tutorNumero = 'Número é obrigatório'
         if (!formData.tutorBairro.trim()) newErrors.tutorBairro = 'Bairro é obrigatório'
+        if (!formData.tutorCidade.trim()) newErrors.tutorCidade = 'Cidade é obrigatória'
       }
 
       if (tutorFound === null) {
@@ -183,6 +230,11 @@ export function CadastroWizard() {
 
     setLoading(true)
     try {
+      // Montar endereço completo
+      const enderecoCompleto = formData.tutorComplemento
+        ? `${formData.tutorEndereco}, ${formData.tutorNumero} - ${formData.tutorComplemento}`
+        : `${formData.tutorEndereco}, ${formData.tutorNumero}`
+
       const payload: CreateAnimalDTO = {
         nome: formData.nome,
         especie: formData.especie as 'cachorro' | 'gato',
@@ -203,8 +255,8 @@ export function CadastroWizard() {
           cpf: cleanCPF(formData.tutorCpf),
           telefone: formData.tutorTelefone,
           email: formData.tutorEmail || undefined,
-          endereco: formData.tutorEndereco,
-          cidade: formData.tutorCidade,
+          endereco: enderecoCompleto,
+          cidade: formData.tutorUf ? `${formData.tutorCidade}/${formData.tutorUf}` : formData.tutorCidade,
           bairro: formData.tutorBairro,
         }
       }
@@ -424,30 +476,103 @@ export function CadastroWizard() {
                     value={formData.tutorEmail}
                     onChange={handleChange}
                   />
-                  <Input
-                    id="tutorEndereco"
-                    name="tutorEndereco"
-                    label="Endereço"
-                    value={formData.tutorEndereco}
-                    onChange={handleChange}
-                    error={errors.tutorEndereco}
-                  />
-                  <Input
-                    id="tutorCidade"
-                    name="tutorCidade"
-                    label="Cidade"
-                    value={formData.tutorCidade}
-                    onChange={handleChange}
-                    error={errors.tutorCidade}
-                  />
-                  <Input
-                    id="tutorBairro"
-                    name="tutorBairro"
-                    label="Bairro"
-                    value={formData.tutorBairro}
-                    onChange={handleChange}
-                    error={errors.tutorBairro}
-                  />
+                </div>
+
+                {/* Seção de Endereço com CEP */}
+                <div className="pt-4 border-t border-gray-200">
+                  <div className="flex items-center gap-2 mb-4">
+                    <MapPin className="w-5 h-5 text-gray-600" />
+                    <span className="font-medium text-gray-900">Endereço</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="relative">
+                      <Input
+                        id="tutorCep"
+                        name="tutorCep"
+                        label="CEP"
+                        value={formatarCEP(formData.tutorCep)}
+                        onChange={handleCepChange}
+                        placeholder="00000-000"
+                        error={errors.tutorCep || cepError}
+                      />
+                      {searchingCep && (
+                        <Loader2 className="absolute right-3 top-9 w-5 h-5 text-gray-400 animate-spin" />
+                      )}
+                    </div>
+                    <div className="md:col-span-2">
+                      <Input
+                        id="tutorEndereco"
+                        name="tutorEndereco"
+                        label="Rua/Avenida"
+                        value={formData.tutorEndereco}
+                        onChange={handleChange}
+                        error={errors.tutorEndereco}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4 mt-4">
+                    <Input
+                      id="tutorNumero"
+                      name="tutorNumero"
+                      label="Número"
+                      value={formData.tutorNumero}
+                      onChange={handleChange}
+                      placeholder="123"
+                      error={errors.tutorNumero}
+                    />
+                    <div className="col-span-2">
+                      <Input
+                        id="tutorComplemento"
+                        name="tutorComplemento"
+                        label="Complemento"
+                        value={formData.tutorComplemento}
+                        onChange={handleChange}
+                        placeholder="Apto, Bloco..."
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                    <Input
+                      id="tutorBairro"
+                      name="tutorBairro"
+                      label="Bairro"
+                      value={formData.tutorBairro}
+                      onChange={handleChange}
+                      error={errors.tutorBairro}
+                    />
+                    <Input
+                      id="tutorCidade"
+                      name="tutorCidade"
+                      label="Cidade"
+                      value={formData.tutorCidade}
+                      onChange={handleChange}
+                      error={errors.tutorCidade}
+                    />
+                    <Input
+                      id="tutorUf"
+                      name="tutorUf"
+                      label="UF"
+                      value={formData.tutorUf}
+                      onChange={handleChange}
+                      placeholder="SP"
+                      maxLength={2}
+                      className="uppercase"
+                    />
+                  </div>
+
+                  <p className="text-xs text-gray-500 mt-2">
+                    <a
+                      href="https://buscacepinter.correios.com.br/app/endereco/index.php"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      Não sabe o CEP? Consulte aqui
+                    </a>
+                  </p>
                 </div>
               </div>
             )}

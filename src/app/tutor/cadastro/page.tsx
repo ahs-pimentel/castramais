@@ -2,23 +2,30 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { PawPrint, ArrowRight, ArrowLeft, Loader2, User, Phone, Mail, MapPin } from 'lucide-react'
+import { PawPrint, ArrowRight, ArrowLeft, Loader2, User, Phone, Mail, MapPin, Search } from 'lucide-react'
 import { formatCPF, validateCPF, formatPhone } from '@/lib/utils'
+import { formatarCEP } from '@/lib/cep'
 
 export default function TutorCadastroPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [loadingCep, setLoadingCep] = useState(false)
   const [error, setError] = useState('')
+  const [cepError, setCepError] = useState('')
 
   const [formData, setFormData] = useState({
     nome: '',
     cpf: '',
     telefone: '',
     email: '',
+    cep: '',
     endereco: '',
-    cidade: '',
+    numero: '',
+    complemento: '',
     bairro: '',
+    cidade: '',
+    uf: '',
   })
 
   useEffect(() => {
@@ -38,10 +45,43 @@ export default function TutorCadastroPage() {
       formattedValue = value.replace(/\D/g, '').slice(0, 11)
     } else if (name === 'telefone') {
       formattedValue = value.replace(/\D/g, '').slice(0, 11)
+    } else if (name === 'cep') {
+      formattedValue = value.replace(/\D/g, '').slice(0, 8)
     }
 
     setFormData(prev => ({ ...prev, [name]: formattedValue }))
     setError('')
+
+    // Buscar CEP automaticamente quando tiver 8 dígitos
+    if (name === 'cep' && formattedValue.length === 8) {
+      buscarCep(formattedValue)
+    }
+  }
+
+  const buscarCep = async (cep: string) => {
+    setLoadingCep(true)
+    setCepError('')
+
+    try {
+      const res = await fetch(`/api/cep/${cep}`)
+      const data = await res.json()
+
+      if (res.ok) {
+        setFormData(prev => ({
+          ...prev,
+          endereco: data.logradouro || '',
+          bairro: data.bairro || '',
+          cidade: data.cidade || '',
+          uf: data.uf || '',
+        }))
+      } else {
+        setCepError('CEP não encontrado')
+      }
+    } catch {
+      setCepError('Erro ao buscar CEP')
+    } finally {
+      setLoadingCep(false)
+    }
   }
 
   const validateStep1 = () => {
@@ -61,16 +101,24 @@ export default function TutorCadastroPage() {
   }
 
   const validateStep2 = () => {
+    if (!formData.cep || formData.cep.length !== 8) {
+      setError('CEP é obrigatório')
+      return false
+    }
     if (!formData.endereco.trim()) {
       setError('Endereço é obrigatório')
       return false
     }
-    if (!formData.cidade.trim()) {
-      setError('Cidade é obrigatória')
+    if (!formData.numero.trim()) {
+      setError('Número é obrigatório')
       return false
     }
     if (!formData.bairro.trim()) {
       setError('Bairro é obrigatório')
+      return false
+    }
+    if (!formData.cidade.trim()) {
+      setError('Cidade é obrigatória')
       return false
     }
     return true
@@ -98,11 +146,24 @@ export default function TutorCadastroPage() {
     setLoading(true)
     setError('')
 
+    // Montar endereço completo
+    const enderecoCompleto = formData.complemento
+      ? `${formData.endereco}, ${formData.numero} - ${formData.complemento}`
+      : `${formData.endereco}, ${formData.numero}`
+
     try {
       const res = await fetch('/api/tutor/cadastrar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          nome: formData.nome,
+          cpf: formData.cpf,
+          telefone: formData.telefone,
+          email: formData.email,
+          endereco: enderecoCompleto,
+          bairro: formData.bairro,
+          cidade: `${formData.cidade}/${formData.uf}`,
+        }),
       })
 
       const data = await res.json()
@@ -244,22 +305,91 @@ export default function TutorCadastroPage() {
                   </div>
                   <div>
                     <h2 className="font-semibold text-gray-900">Endereço</h2>
-                    <p className="text-xs text-gray-500">Onde você mora</p>
+                    <p className="text-xs text-gray-500">Digite o CEP para preencher automaticamente</p>
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Endereço completo *
+                    CEP *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      name="cep"
+                      value={formatarCEP(formData.cep)}
+                      onChange={handleChange}
+                      placeholder="00000-000"
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 focus:outline-none transition-colors font-mono pr-12"
+                    />
+                    {loadingCep && (
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                        <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                      </div>
+                    )}
+                    {!loadingCep && formData.cep.length === 8 && !cepError && (
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                        <Search className="w-5 h-5 text-green-500" />
+                      </div>
+                    )}
+                  </div>
+                  {cepError && (
+                    <p className="text-xs text-red-500 mt-1">{cepError}</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    <a
+                      href="https://buscacepinter.correios.com.br/app/endereco/index.php"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      Não sabe o CEP? Consulte aqui
+                    </a>
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Rua/Avenida *
                   </label>
                   <input
                     type="text"
                     name="endereco"
                     value={formData.endereco}
                     onChange={handleChange}
-                    placeholder="Rua, número, complemento"
+                    placeholder="Nome da rua"
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 focus:outline-none transition-colors"
                   />
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Número *
+                    </label>
+                    <input
+                      type="text"
+                      name="numero"
+                      value={formData.numero}
+                      onChange={handleChange}
+                      placeholder="123"
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 focus:outline-none transition-colors"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Complemento
+                    </label>
+                    <input
+                      type="text"
+                      name="complemento"
+                      value={formData.complemento}
+                      onChange={handleChange}
+                      placeholder="Apto, Bloco..."
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 focus:outline-none transition-colors"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -276,18 +406,34 @@ export default function TutorCadastroPage() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Cidade *
-                  </label>
-                  <input
-                    type="text"
-                    name="cidade"
-                    value={formData.cidade}
-                    onChange={handleChange}
-                    placeholder="Nome da cidade"
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 focus:outline-none transition-colors"
-                  />
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Cidade *
+                    </label>
+                    <input
+                      type="text"
+                      name="cidade"
+                      value={formData.cidade}
+                      onChange={handleChange}
+                      placeholder="Nome da cidade"
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 focus:outline-none transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      UF
+                    </label>
+                    <input
+                      type="text"
+                      name="uf"
+                      value={formData.uf}
+                      onChange={handleChange}
+                      placeholder="SP"
+                      maxLength={2}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 focus:outline-none transition-colors uppercase"
+                    />
+                  </div>
                 </div>
               </div>
             )}
