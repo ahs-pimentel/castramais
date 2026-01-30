@@ -24,7 +24,7 @@ services:
     container_name: castramais-app
     restart: always
     ports:
-      - "80:3000"
+      - "3000:3000"
     environment:
       DATABASE_URL: postgresql://castramais:${DB_PASSWORD}@db:5432/castramais
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
@@ -32,6 +32,14 @@ services:
       NODE_ENV: production
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@castramais.com.br}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      EVOLUTION_API_URL: ${EVOLUTION_API_URL:-https://evo.odois.com.br}
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
+      EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE:-castramais}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-noreply@castramais.com.br}
     depends_on:
       db:
         condition: service_healthy
