@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Cat, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -30,7 +30,7 @@ export default function LoginPage() {
       if (result?.error) {
         setError('Email ou senha inválidos')
       } else {
-        router.push('/')
+        router.push('/dashboard')
         router.refresh()
       }
     } catch {
@@ -44,11 +44,12 @@ export default function LoginPage() {
     <Card className="w-full max-w-md">
       <CardContent className="pt-8 pb-6">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mb-4">
-            <Cat className="w-10 h-10 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">Castra<span className="text-primary">+</span></h1>
-          <p className="text-gray-500 mt-1">Faça login para continuar</p>
+          <img
+            src="/LOGO.svg"
+            alt="Castra+ MG"
+            className="h-16 w-auto mb-4"
+          />
+          <p className="text-gray-500">Faça login para continuar</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

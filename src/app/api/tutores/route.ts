@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { getRepository } from '@/lib/db'
-import { Tutor } from '@/entities'
+import { pool } from '@/lib/pool'
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -11,12 +10,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const tutorRepository = await getRepository(Tutor)
-    const tutores = await tutorRepository.find({
-      order: { nome: 'ASC' },
-    })
+    const result = await pool.query(
+      'SELECT * FROM tutores ORDER BY nome ASC'
+    )
 
-    return NextResponse.json(tutores)
+    return NextResponse.json(result.rows)
   } catch (error) {
     console.error('Erro ao buscar tutores:', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
@@ -31,21 +29,25 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const tutorRepository = await getRepository(Tutor)
 
     // Verificar se CPF já existe
-    const existingTutor = await tutorRepository.findOne({
-      where: { cpf: body.cpf },
-    })
+    const existing = await pool.query(
+      'SELECT id FROM tutores WHERE cpf = $1',
+      [body.cpf]
+    )
 
-    if (existingTutor) {
+    if (existing.rows.length > 0) {
       return NextResponse.json({ error: 'CPF já cadastrado' }, { status: 400 })
     }
 
-    const tutor = tutorRepository.create(body)
-    const savedTutor = await tutorRepository.save(tutor)
+    const result = await pool.query(
+      `INSERT INTO tutores (nome, cpf, telefone, email, endereco, cidade, bairro)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING *`,
+      [body.nome, body.cpf, body.telefone, body.email, body.endereco, body.cidade, body.bairro]
+    )
 
-    return NextResponse.json(savedTutor, { status: 201 })
+    return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error) {
     console.error('Erro ao criar tutor:', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })

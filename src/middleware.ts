@@ -3,13 +3,20 @@ import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  // Landing page pública
+  if (pathname === '/') {
+    return NextResponse.next()
+  }
+
   const token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET
   })
 
-  const isAuthPage = request.nextUrl.pathname.startsWith('/login')
-  const isApiAuth = request.nextUrl.pathname.startsWith('/api/auth')
+  const isAuthPage = pathname.startsWith('/login')
+  const isApiAuth = pathname.startsWith('/api/auth')
 
   if (isApiAuth) {
     return NextResponse.next()
@@ -17,7 +24,7 @@ export async function middleware(request: NextRequest) {
 
   if (isAuthPage) {
     if (token) {
-      return NextResponse.redirect(new URL('/', request.url))
+      return NextResponse.redirect(new URL('/dashboard', request.url))
     }
     return NextResponse.next()
   }
@@ -33,6 +40,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!api|tutor|_next/static|_next/image|favicon.ico|manifest.json|icons).*)',
+    '/((?!api|tutor|entidade|_next/static|_next/image|favicon.ico|manifest.json|icons|.*\\.png$|.*\\.jpg$|.*\\.svg$).*)',
   ],
 }

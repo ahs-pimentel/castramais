@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { getRepository } from '@/lib/db'
-import { Animal } from '@/entities'
+import { pool } from '@/lib/pool'
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -11,20 +10,22 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const animalRepository = await getRepository(Animal)
+    const result = await pool.query(`
+      SELECT
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE status = 'pendente') as pendentes,
+        COUNT(*) FILTER (WHERE status = 'agendado') as agendados,
+        COUNT(*) FILTER (WHERE status = 'realizado') as realizados
+      FROM animais
+    `)
 
-    const [total, pendentes, agendados, realizados] = await Promise.all([
-      animalRepository.count(),
-      animalRepository.count({ where: { status: 'pendente' } }),
-      animalRepository.count({ where: { status: 'agendado' } }),
-      animalRepository.count({ where: { status: 'realizado' } }),
-    ])
+    const stats = result.rows[0]
 
     return NextResponse.json({
-      total,
-      pendentes,
-      agendados,
-      realizados,
+      total: parseInt(stats.total),
+      pendentes: parseInt(stats.pendentes),
+      agendados: parseInt(stats.agendados),
+      realizados: parseInt(stats.realizados),
     })
   } catch (error) {
     console.error('Erro ao buscar estatísticas:', error)

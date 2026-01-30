@@ -10,8 +10,19 @@ const config: Config = {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#F97316',
-          hover: '#EA580C',
+          DEFAULT: '#E94E35',
+          hover: '#D4432E',
+          light: '#FEE8E4',
+        },
+        secondary: {
+          DEFAULT: '#2B2D5E',
+          hover: '#1F2148',
+          light: '#E8E8F0',
+        },
+        cream: {
+          DEFAULT: '#F5E6DC',
+          light: '#FAF3EE',
+          dark: '#E8D5C8',
         },
         pending: {
           bg: '#FEF3C7',

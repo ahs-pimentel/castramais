@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { PawPrint, ArrowRight, Loader2, Smartphone, UserPlus } from 'lucide-react'
+import { ArrowRight, Loader2, Smartphone, UserPlus } from 'lucide-react'
 import { formatCPF, validateCPF } from '@/lib/utils'
 
 export default function TutorLoginPage() {
@@ -62,12 +62,11 @@ export default function TutorLoginPage() {
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <div className="pt-12 pb-8 px-6 text-center">
-        <div className="w-20 h-20 bg-primary rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/30">
-          <PawPrint className="w-10 h-10 text-white" />
-        </div>
-        <h1 className="text-3xl font-bold text-gray-900">
-          Castra<span className="text-primary">+</span>
-        </h1>
+        <img
+          src="/LOGO.svg"
+          alt="Castra+ MG"
+          className="h-20 w-auto mx-auto mb-4"
+        />
         <p className="text-gray-500 mt-2">Acompanhe a castração do seu pet</p>
       </div>
 

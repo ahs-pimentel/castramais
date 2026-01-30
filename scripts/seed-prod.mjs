@@ -44,6 +44,23 @@ async function seed() {
       )
     `)
 
+    // Tabela entidades (organizações de castração)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS entidades (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        nome VARCHAR(255) NOT NULL,
+        cnpj VARCHAR(18) UNIQUE,
+        responsavel VARCHAR(255) NOT NULL,
+        telefone VARCHAR(20) NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        cidade VARCHAR(100) NOT NULL,
+        bairro VARCHAR(100),
+        ativo BOOLEAN DEFAULT true,
+        "createdAt" TIMESTAMP DEFAULT NOW()
+      )
+    `)
+
     // Tabela animais
     await pool.query(`
       CREATE TABLE IF NOT EXISTS animais (
