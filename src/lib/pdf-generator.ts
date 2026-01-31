@@ -38,20 +38,24 @@ interface Animal {
   especie: string
   raca: string
   sexo: string
-  peso?: number
-  idadeAnos?: number
-  idadeMeses?: number
+  peso?: number | null
+  idadeAnos?: number | null
+  idadeMeses?: number | null
   registroSinpatinhas: string
   status: string
-  dataAgendamento?: string
-  dataRealizacao?: string
+  dataAgendamento?: string | null
+  dataRealizacao?: string | null
+  horarioAgendamento?: string | null
+  localAgendamento?: string | null
+  enderecoAgendamento?: string | null
+  observacoes?: string | null
   tutor?: {
     nome: string
     cpf: string
     telefone: string
     cidade: string
     bairro: string
-  }
+  } | null
 }
 
 interface Tutor {
