@@ -23,6 +23,7 @@ import { OnboardingSinpatinhas } from './onboarding-sinpatinhas'
 import { CreateAnimalDTO } from '@/lib/types'
 import { formatCPF, cleanCPF, validateCPF } from '@/lib/utils'
 import { formatarCEP } from '@/lib/cep'
+import { validarSinpatinhas, getMensagemErroSinpatinhas } from '@/lib/validators'
 
 const especieOptions = [
   { value: 'cachorro', label: 'Cachorro' },
@@ -177,6 +178,9 @@ export function CadastroWizard() {
     if (step === 0) {
       if (!formData.registroSinpatinhas.trim()) {
         newErrors.registroSinpatinhas = 'O número do RG Animal é obrigatório'
+      } else if (!validarSinpatinhas(formData.registroSinpatinhas)) {
+        const msg = getMensagemErroSinpatinhas(formData.registroSinpatinhas)
+        newErrors.registroSinpatinhas = msg || 'Formato inválido. Use: BR-000000000000'
       }
     }
 
@@ -361,7 +365,7 @@ export function CadastroWizard() {
                 label="Número do RG Animal (SinPatinhas)"
                 value={formData.registroSinpatinhas}
                 onChange={handleChange}
-                placeholder="Ex: SP-2024-001234567"
+                placeholder="BR-000000000000"
                 error={errors.registroSinpatinhas}
                 className="text-center text-lg font-mono"
               />
