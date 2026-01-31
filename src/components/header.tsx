@@ -1,13 +1,27 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { signOut } from 'next-auth/react'
-import { LogOut, PawPrint, Users, Building2 } from 'lucide-react'
+import { LogOut, PawPrint, Users, Building2, MessageSquare } from 'lucide-react'
 import { Button } from './ui/button'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 export function Header() {
   const pathname = usePathname()
+  const [chatwootUrl, setChatwootUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Buscar URL do Chatwoot
+    fetch('/api/admin/chatwoot')
+      .then(res => res.json())
+      .then(data => {
+        if (data.configurado && data.url) {
+          setChatwootUrl(data.url)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const navItems = [
     { href: '/dashboard', label: 'Animais', icon: PawPrint },
@@ -48,15 +62,29 @@ export function Header() {
               })}
             </nav>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => signOut({ callbackUrl: '/login' })}
-            className="text-gray-500"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Sair
-          </Button>
+          <div className="flex items-center gap-2">
+            {chatwootUrl && (
+              <a
+                href={chatwootUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-green-600 hover:bg-green-50 transition-colors"
+                title="Abrir Central de Atendimento"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span className="hidden sm:inline">Atendimento</span>
+              </a>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => signOut({ callbackUrl: '/login' })}
+              className="text-gray-500"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sair
+            </Button>
+          </div>
         </div>
       </div>
     </header>

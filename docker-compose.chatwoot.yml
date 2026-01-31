@@ -1,0 +1,118 @@
+# Chatwoot - Sistema de Atendimento ao Cliente
+# Integrado com Evolution API para WhatsApp
+#
+# Para iniciar:
+#   docker compose -f docker-compose.chatwoot.yml up -d
+#
+# Após iniciar, acesse: http://localhost:3001
+# Configure a inbox do tipo "API" para integrar com Evolution API
+
+services:
+  chatwoot-db:
+    image: postgres:16-alpine
+    container_name: chatwoot-db
+    restart: always
+    environment:
+      POSTGRES_USER: chatwoot
+      POSTGRES_PASSWORD: ${CHATWOOT_DB_PASSWORD:-chatwoot_secret_password}
+      POSTGRES_DB: chatwoot
+    volumes:
+      - chatwoot_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatwoot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chatwoot-network
+
+  chatwoot-redis:
+    image: redis:7-alpine
+    container_name: chatwoot-redis
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - chatwoot_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chatwoot-network
+
+  chatwoot-rails:
+    image: chatwoot/chatwoot:latest
+    container_name: chatwoot-rails
+    restart: always
+    command: bundle exec rails s -p 3000 -b 0.0.0.0
+    ports:
+      - "3001:3000"
+    environment:
+      # Database
+      POSTGRES_HOST: chatwoot-db
+      POSTGRES_PORT: 5432
+      POSTGRES_DATABASE: chatwoot
+      POSTGRES_USERNAME: chatwoot
+      POSTGRES_PASSWORD: ${CHATWOOT_DB_PASSWORD:-chatwoot_secret_password}
+      # Redis
+      REDIS_URL: redis://chatwoot-redis:6379
+      # Rails
+      RAILS_ENV: production
+      SECRET_KEY_BASE: ${CHATWOOT_SECRET_KEY:-replace_with_random_64_chars_string_here}
+      RAILS_LOG_TO_STDOUT: "true"
+      LOG_LEVEL: info
+      # Frontend
+      FRONTEND_URL: ${CHATWOOT_URL:-http://localhost:3001}
+      # Desabilitar verificação de email (simplifica setup inicial)
+      ENABLE_ACCOUNT_SIGNUP: "false"
+      # Mailer (opcional - pode usar o mesmo SMTP)
+      MAILER_SENDER_EMAIL: ${SMTP_FROM:-noreply@castramais.com.br}
+      SMTP_DOMAIN: ${SMTP_HOST:-}
+      SMTP_ADDRESS: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASS:-}
+      SMTP_AUTHENTICATION: plain
+      SMTP_ENABLE_STARTTLS_AUTO: "true"
+      # Timezone
+      DEFAULT_LOCALE: pt_BR
+      TZ: America/Sao_Paulo
+    depends_on:
+      chatwoot-db:
+        condition: service_healthy
+      chatwoot-redis:
+        condition: service_healthy
+    networks:
+      - chatwoot-network
+
+  chatwoot-sidekiq:
+    image: chatwoot/chatwoot:latest
+    container_name: chatwoot-sidekiq
+    restart: always
+    command: bundle exec sidekiq -C config/sidekiq.yml
+    environment:
+      POSTGRES_HOST: chatwoot-db
+      POSTGRES_PORT: 5432
+      POSTGRES_DATABASE: chatwoot
+      POSTGRES_USERNAME: chatwoot
+      POSTGRES_PASSWORD: ${CHATWOOT_DB_PASSWORD:-chatwoot_secret_password}
+      REDIS_URL: redis://chatwoot-redis:6379
+      RAILS_ENV: production
+      SECRET_KEY_BASE: ${CHATWOOT_SECRET_KEY:-replace_with_random_64_chars_string_here}
+      RAILS_LOG_TO_STDOUT: "true"
+    depends_on:
+      chatwoot-db:
+        condition: service_healthy
+      chatwoot-redis:
+        condition: service_healthy
+    networks:
+      - chatwoot-network
+
+networks:
+  chatwoot-network:
+    driver: bridge
+
+volumes:
+  chatwoot_db_data:
+  chatwoot_redis_data:
