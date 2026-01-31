@@ -9,7 +9,7 @@
 
 services:
   chatwoot-db:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: chatwoot-db
     restart: always
     environment:
