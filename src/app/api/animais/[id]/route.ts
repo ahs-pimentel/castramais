@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { pool } from '@/lib/pool'
+import {
+  notificarAgendamento,
+  notificarCastracaoRealizada,
+  notificarCancelamento
+} from '@/lib/notifications'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -53,21 +58,28 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { id } = await params
     const body = await request.json()
 
-    // Verificar se animal existe
-    const existing = await pool.query('SELECT id FROM animais WHERE id = $1', [id])
-    if (existing.rows.length === 0) {
+    // Buscar animal atual com dados do tutor para notificações
+    const existingResult = await pool.query(
+      `SELECT a.*, t.nome as tutor_nome, t.telefone as tutor_telefone, t.email as tutor_email
+       FROM animais a
+       LEFT JOIN tutores t ON a."tutorId" = t.id
+       WHERE a.id = $1`,
+      [id]
+    )
+    if (existingResult.rows.length === 0) {
       return NextResponse.json({ error: 'Animal não encontrado' }, { status: 404 })
     }
+    const animalAnterior = existingResult.rows[0]
 
     const updateFields = []
     const values = []
     let paramIndex = 1
 
-    const allowedFields = ['nome', 'especie', 'raca', 'sexo', 'peso', 'idadeAnos', 'idadeMeses', 'registroSinpatinhas', 'status', 'dataAgendamento', 'dataRealizacao', 'observacoes']
+    const allowedFields = ['nome', 'especie', 'raca', 'sexo', 'peso', 'idadeAnos', 'idadeMeses', 'registroSinpatinhas', 'status', 'dataAgendamento', 'dataRealizacao', 'observacoes', 'localAgendamento', 'enderecoAgendamento', 'horarioAgendamento']
 
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
-        const dbField = ['idadeAnos', 'idadeMeses', 'registroSinpatinhas', 'dataAgendamento', 'dataRealizacao'].includes(field)
+        const dbField = ['idadeAnos', 'idadeMeses', 'registroSinpatinhas', 'dataAgendamento', 'dataRealizacao', 'localAgendamento', 'enderecoAgendamento', 'horarioAgendamento'].includes(field)
           ? `"${field}"`
           : field
         updateFields.push(`${dbField} = $${paramIndex}`)
@@ -86,7 +98,52 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       values
     )
 
-    return NextResponse.json(result.rows[0])
+    const animalAtualizado = result.rows[0]
+
+    // Enviar notificações baseadas na mudança de status
+    if (animalAnterior.tutor_telefone && body.status && body.status !== animalAnterior.status) {
+      const especieNotif = animalAtualizado.especie === 'cachorro' ? 'canino' : 'felino'
+
+      // Status: agendado → Notificar agendamento
+      if (body.status === 'agendado' && animalAtualizado.dataAgendamento) {
+        const dataFormatada = new Date(animalAtualizado.dataAgendamento).toLocaleDateString('pt-BR')
+        notificarAgendamento(
+          animalAnterior.tutor_telefone,
+          animalAnterior.tutor_email,
+          animalAnterior.tutor_nome,
+          animalAtualizado.nome,
+          especieNotif,
+          dataFormatada,
+          animalAtualizado.horarioAgendamento || 'A confirmar',
+          animalAtualizado.localAgendamento || 'A confirmar',
+          animalAtualizado.enderecoAgendamento || 'A confirmar'
+        ).catch(err => console.error('Erro ao enviar notificação de agendamento:', err))
+      }
+
+      // Status: castrado/realizado → Notificar castração realizada
+      if (body.status === 'castrado' || body.status === 'realizado') {
+        notificarCastracaoRealizada(
+          animalAnterior.tutor_telefone,
+          animalAnterior.tutor_email,
+          animalAnterior.tutor_nome,
+          animalAtualizado.nome,
+          especieNotif
+        ).catch(err => console.error('Erro ao enviar notificação de castração:', err))
+      }
+
+      // Status: cancelado → Notificar cancelamento
+      if (body.status === 'cancelado') {
+        notificarCancelamento(
+          animalAnterior.tutor_telefone,
+          animalAnterior.tutor_email,
+          animalAnterior.tutor_nome,
+          animalAtualizado.nome,
+          body.motivoCancelamento
+        ).catch(err => console.error('Erro ao enviar notificação de cancelamento:', err))
+      }
+    }
+
+    return NextResponse.json(animalAtualizado)
   } catch (error) {
     console.error('Erro ao atualizar animal:', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })

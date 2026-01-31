@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/pool'
 import { extrairToken, verificarToken } from '@/lib/tutor-auth'
+import { notificarCadastroPet } from '@/lib/notifications'
 import { v4 as uuidv4 } from 'uuid'
 
 export async function POST(request: NextRequest) {
@@ -59,6 +60,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Buscar dados do tutor para notificação
+    const tutorResult = await pool.query(
+      'SELECT nome, telefone, email FROM tutores WHERE id = $1',
+      [payload.tutorId]
+    )
+    const tutor = tutorResult.rows[0]
+
     // Criar animal vinculado ao tutor logado
     const animalId = uuidv4()
     const result = await pool.query(
@@ -82,6 +90,18 @@ export async function POST(request: NextRequest) {
         'pendente',
       ]
     )
+
+    // Enviar notificação de cadastro via WhatsApp (async, não bloqueia resposta)
+    if (tutor?.telefone) {
+      const especieNotif = especie === 'cachorro' ? 'canino' : 'felino'
+      notificarCadastroPet(
+        tutor.telefone,
+        tutor.email || null,
+        tutor.nome,
+        nome.trim(),
+        especieNotif
+      ).catch(err => console.error('Erro ao enviar notificação de cadastro:', err))
+    }
 
     return NextResponse.json(result.rows[0], { status: 201 })
   } catch (error) {

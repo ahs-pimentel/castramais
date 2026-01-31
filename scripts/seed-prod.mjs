@@ -75,12 +75,32 @@ async function seed() {
         "registroSinpatinhas" VARCHAR(100) UNIQUE NOT NULL,
         status VARCHAR(20) DEFAULT 'pendente',
         "dataAgendamento" DATE,
+        "horarioAgendamento" VARCHAR(20),
+        "localAgendamento" VARCHAR(255),
+        "enderecoAgendamento" VARCHAR(255),
         "dataRealizacao" DATE,
         observacoes TEXT,
         "tutorId" UUID REFERENCES tutores(id),
         "createdAt" TIMESTAMP DEFAULT NOW(),
         "updatedAt" TIMESTAMP DEFAULT NOW()
       )
+    `)
+
+    // Adicionar colunas de agendamento se não existirem (para bancos existentes)
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'animais' AND column_name = 'horarioAgendamento') THEN
+          ALTER TABLE animais ADD COLUMN "horarioAgendamento" VARCHAR(20);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'animais' AND column_name = 'localAgendamento') THEN
+          ALTER TABLE animais ADD COLUMN "localAgendamento" VARCHAR(255);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'animais' AND column_name = 'enderecoAgendamento') THEN
+          ALTER TABLE animais ADD COLUMN "enderecoAgendamento" VARCHAR(255);
+        END IF;
+      END
+      $$;
     `)
 
     console.log('Tabelas criadas com sucesso!')
