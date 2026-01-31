@@ -4,6 +4,19 @@ import { enviarMensagemWhatsApp } from '@/lib/evolution'
 // Webhook que recebe mensagens do Chatwoot e envia para WhatsApp via Evolution API
 // Payload do Chatwoot tem campos no nível raiz (não dentro de "message")
 
+// Cache para evitar duplicatas (Chatwoot envia 2x o mesmo evento às vezes)
+const processedMessages = new Set<number>()
+const MAX_CACHE_SIZE = 100
+
+function addToCache(messageId: number) {
+  if (processedMessages.size >= MAX_CACHE_SIZE) {
+    // Remove o primeiro elemento (mais antigo)
+    const first = processedMessages.values().next().value
+    processedMessages.delete(first)
+  }
+  processedMessages.add(messageId)
+}
+
 export async function POST(request: NextRequest) {
   try {
     const payload = await request.json()
@@ -13,6 +26,13 @@ export async function POST(request: NextRequest) {
     // Só processar mensagens criadas
     if (payload.event !== 'message_created') {
       return NextResponse.json({ status: 'ignored', reason: 'not a message event' })
+    }
+
+    // Verificar se já processamos esta mensagem
+    const messageId = payload.id
+    if (messageId && processedMessages.has(messageId)) {
+      console.log('[Webhook Chatwoot] Mensagem duplicada ignorada:', messageId)
+      return NextResponse.json({ status: 'ignored', reason: 'duplicate message' })
     }
 
     // Campos estão no nível raiz do payload
@@ -67,6 +87,11 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`[Webhook Chatwoot] Enviando para ${telefone}: ${content.substring(0, 50)}...`)
+
+    // Marcar como processada antes de enviar (evita duplicatas)
+    if (messageId) {
+      addToCache(messageId)
+    }
 
     // Enviar via Evolution API
     const resultado = await enviarMensagemWhatsApp(telefone, content)
