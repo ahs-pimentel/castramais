@@ -2,78 +2,38 @@ import { NextRequest, NextResponse } from 'next/server'
 import { enviarMensagemWhatsApp } from '@/lib/evolution'
 
 // Webhook que recebe mensagens do Chatwoot e envia para WhatsApp via Evolution API
-
-interface ChatwootWebhookPayload {
-  event: string
-  id?: number
-  account?: {
-    id: number
-    name: string
-  }
-  inbox?: {
-    id: number
-    name: string
-  }
-  conversation?: {
-    id: number
-    status: string
-    contact_inbox?: {
-      source_id: string
-    }
-    meta?: {
-      sender?: {
-        phone_number: string
-        name: string
-      }
-    }
-  }
-  message?: {
-    id: number
-    content: string
-    message_type: 'incoming' | 'outgoing'
-    private: boolean
-    sender?: {
-      id: number
-      name: string
-      type: string
-    }
-  }
-  sender?: {
-    id: number
-    name: string
-    phone_number?: string
-  }
-}
+// Payload do Chatwoot tem campos no nível raiz (não dentro de "message")
 
 export async function POST(request: NextRequest) {
   try {
     const payload = await request.json()
 
     console.log('[Webhook Chatwoot] Recebido:', payload.event)
-    console.log('[Webhook Chatwoot] Payload completo:', JSON.stringify(payload, null, 2))
 
-    // Só processar mensagens de saída (enviadas pelo operador)
+    // Só processar mensagens criadas
     if (payload.event !== 'message_created') {
       return NextResponse.json({ status: 'ignored', reason: 'not a message event' })
     }
 
-    // Log para debug
-    console.log('[Webhook Chatwoot] Message type:', payload.message_type)
-    console.log('[Webhook Chatwoot] Sender type:', payload.sender?.type)
-    console.log('[Webhook Chatwoot] Private:', payload.private)
+    // Campos estão no nível raiz do payload
+    const messageType = payload.message_type
+    const isPrivate = payload.private
+    const senderType = payload.sender?.type?.toLowerCase()
+    const content = payload.content
+
+    console.log('[Webhook Chatwoot] message_type:', messageType, 'private:', isPrivate, 'sender.type:', senderType)
 
     // Ignorar mensagens privadas (notas internas)
-    if (payload.message?.private) {
+    if (isPrivate) {
       return NextResponse.json({ status: 'ignored', reason: 'private message' })
     }
 
     // Ignorar mensagens recebidas (incoming) - só enviar outgoing
-    if (payload.message?.message_type !== 'outgoing') {
+    if (messageType !== 'outgoing') {
       return NextResponse.json({ status: 'ignored', reason: 'not outgoing message' })
     }
 
-    // Verificar se é de um agente (user ou User)
-    const senderType = payload.message?.sender?.type?.toLowerCase()
+    // Verificar se é de um agente (user)
     if (senderType !== 'user') {
       console.log('[Webhook Chatwoot] Ignorado - sender type:', senderType)
       return NextResponse.json({ status: 'ignored', reason: 'not from agent' })
@@ -82,12 +42,7 @@ export async function POST(request: NextRequest) {
     // Obter o telefone do contato
     let telefone = ''
 
-    // Log para debug - ver estrutura do payload
-    console.log('[Webhook Chatwoot] contact_inbox:', JSON.stringify(payload.conversation?.contact_inbox))
-    console.log('[Webhook Chatwoot] meta.sender:', JSON.stringify(payload.conversation?.meta?.sender))
-    console.log('[Webhook Chatwoot] sender:', JSON.stringify(payload.sender))
-
-    // Tentar obter do source_id (nosso identificador)
+    // Tentar obter do contact_inbox.source_id (dentro de conversation)
     if (payload.conversation?.contact_inbox?.source_id) {
       telefone = payload.conversation.contact_inbox.source_id
     }
@@ -95,9 +50,9 @@ export async function POST(request: NextRequest) {
     else if (payload.conversation?.meta?.sender?.phone_number) {
       telefone = payload.conversation.meta.sender.phone_number.replace(/\D/g, '')
     }
-    // Ou do sender principal
-    else if (payload.sender?.phone_number) {
-      telefone = payload.sender.phone_number.replace(/\D/g, '')
+    // Ou do meta.sender.identifier
+    else if (payload.conversation?.meta?.sender?.identifier) {
+      telefone = payload.conversation.meta.sender.identifier
     }
 
     console.log('[Webhook Chatwoot] Telefone encontrado:', telefone)
@@ -107,15 +62,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ status: 'error', reason: 'phone not found' }, { status: 400 })
     }
 
-    const mensagem = payload.message?.content
-    if (!mensagem) {
+    if (!content) {
       return NextResponse.json({ status: 'ignored', reason: 'no content' })
     }
 
-    console.log(`[Webhook Chatwoot] Enviando para ${telefone}: ${mensagem.substring(0, 50)}...`)
+    console.log(`[Webhook Chatwoot] Enviando para ${telefone}: ${content.substring(0, 50)}...`)
 
     // Enviar via Evolution API
-    const resultado = await enviarMensagemWhatsApp(telefone, mensagem)
+    const resultado = await enviarMensagemWhatsApp(telefone, content)
 
     if (resultado) {
       console.log(`[Webhook Chatwoot] Mensagem enviada com sucesso`)
