@@ -285,9 +285,29 @@ export default function LandingPage() {
                 Programa da Agenda Nacional de Proteção, Defesa, Bem-Estar e Direitos dos Animais.<br />
                 Integrante do Programa Nacional de Manejo Populacional Ético de Cães e Gatos.
               </p>
-              <Link href="/login" className="text-white/40 text-xs hover:text-white/60 transition-colors mt-2 inline-block">
-                Acesso administrativo
-              </Link>
+              <div className="flex items-center justify-center gap-4 mt-3">
+                <a
+                  href="/termos-de-uso.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white/60 text-xs hover:text-white transition-colors"
+                >
+                  Termos de Uso
+                </a>
+                <span className="text-white/40">•</span>
+                <a
+                  href="/politica-privacidade.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white/60 text-xs hover:text-white transition-colors"
+                >
+                  Política de Privacidade
+                </a>
+                <span className="text-white/40">•</span>
+                <Link href="/login" className="text-white/40 text-xs hover:text-white/60 transition-colors">
+                  Acesso administrativo
+                </Link>
+              </div>
             </div>
           </div>
         </div>

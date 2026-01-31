@@ -22,6 +22,7 @@ export default function CadastroEntidadePage() {
     confirmPassword: '',
     cidade: '',
     bairro: '',
+    aceitaTermos: false,
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,6 +36,11 @@ export default function CadastroEntidadePage() {
 
     if (form.password.length < 6) {
       setError('A senha deve ter pelo menos 6 caracteres')
+      return
+    }
+
+    if (!form.aceitaTermos) {
+      setError('Você deve aceitar os Termos de Uso e Política de Privacidade')
       return
     }
 
@@ -224,6 +230,38 @@ export default function CadastroEntidadePage() {
                   required
                 />
               </div>
+            </div>
+
+            {/* Aceite de Termos */}
+            <div className="pt-4 border-t border-gray-100">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.aceitaTermos}
+                  onChange={(e) => setForm({ ...form, aceitaTermos: e.target.checked })}
+                  className="mt-1 w-5 h-5 text-primary border-2 border-gray-300 rounded focus:ring-primary focus:ring-offset-0"
+                />
+                <span className="text-sm text-gray-600">
+                  Li e aceito os{' '}
+                  <a
+                    href="/termos-de-uso.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline font-medium"
+                  >
+                    Termos de Uso
+                  </a>{' '}
+                  e a{' '}
+                  <a
+                    href="/politica-privacidade.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline font-medium"
+                  >
+                    Política de Privacidade
+                  </a>
+                </span>
+              </label>
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>

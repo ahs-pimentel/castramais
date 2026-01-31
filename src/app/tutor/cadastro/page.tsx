@@ -26,6 +26,7 @@ export default function TutorCadastroPage() {
     bairro: '',
     cidade: '',
     uf: '',
+    aceitaTermos: false,
   })
 
   useEffect(() => {
@@ -119,6 +120,10 @@ export default function TutorCadastroPage() {
     }
     if (!formData.cidade.trim()) {
       setError('Cidade é obrigatória')
+      return false
+    }
+    if (!formData.aceitaTermos) {
+      setError('Você deve aceitar os Termos de Uso e Política de Privacidade')
       return false
     }
     return true
@@ -434,6 +439,38 @@ export default function TutorCadastroPage() {
                       className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 focus:outline-none transition-colors uppercase"
                     />
                   </div>
+                </div>
+
+                {/* Aceite de Termos */}
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.aceitaTermos}
+                      onChange={(e) => setFormData(prev => ({ ...prev, aceitaTermos: e.target.checked }))}
+                      className="mt-1 w-5 h-5 text-primary border-2 border-gray-300 rounded focus:ring-primary focus:ring-offset-0"
+                    />
+                    <span className="text-sm text-gray-600">
+                      Li e aceito os{' '}
+                      <a
+                        href="/termos-de-uso.html"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline font-medium"
+                      >
+                        Termos de Uso
+                      </a>{' '}
+                      e a{' '}
+                      <a
+                        href="/politica-privacidade.html"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline font-medium"
+                      >
+                        Política de Privacidade
+                      </a>
+                    </span>
+                  </label>
                 </div>
               </div>
             )}
