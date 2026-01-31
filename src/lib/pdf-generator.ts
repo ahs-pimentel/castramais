@@ -443,7 +443,7 @@ export function gerarFichaAnimal(animal: Animal): void {
   doc.save(`ficha-${animal.nome.toLowerCase().replace(/\s+/g, '-')}-${animal.registroSinpatinhas}.pdf`)
 }
 
-function formatarIdade(anos?: number, meses?: number): string {
+function formatarIdade(anos?: number | null, meses?: number | null): string {
   const partes = []
   if (anos && anos > 0) {
     partes.push(`${anos} ano${anos > 1 ? 's' : ''}`)
