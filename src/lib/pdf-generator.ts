@@ -59,23 +59,24 @@ interface Tutor {
   nome: string
   cpf: string
   telefone: string
-  email?: string
+  email?: string | null
   endereco: string
   cidade: string
   bairro: string
   createdAt: string
   animais?: Animal[]
+  totalAnimais?: number
 }
 
 interface Entidade {
   id: string
   nome: string
-  cnpj?: string
+  cnpj?: string | null
   responsavel: string
   telefone: string
   email: string
   cidade: string
-  bairro?: string
+  bairro?: string | null
   ativo: boolean
   createdAt: string
 }
