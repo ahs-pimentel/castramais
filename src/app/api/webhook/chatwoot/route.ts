@@ -47,9 +47,10 @@ interface ChatwootWebhookPayload {
 
 export async function POST(request: NextRequest) {
   try {
-    const payload: ChatwootWebhookPayload = await request.json()
+    const payload = await request.json()
 
     console.log('[Webhook Chatwoot] Recebido:', payload.event)
+    console.log('[Webhook Chatwoot] Payload completo:', JSON.stringify(payload, null, 2))
 
     // Só processar mensagens de saída (enviadas pelo operador)
     if (payload.event !== 'message_created') {
@@ -57,9 +58,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Log para debug
-    console.log('[Webhook Chatwoot] Message type:', payload.message?.message_type)
-    console.log('[Webhook Chatwoot] Sender type:', payload.message?.sender?.type)
-    console.log('[Webhook Chatwoot] Private:', payload.message?.private)
+    console.log('[Webhook Chatwoot] Message type:', payload.message_type)
+    console.log('[Webhook Chatwoot] Sender type:', payload.sender?.type)
+    console.log('[Webhook Chatwoot] Private:', payload.private)
 
     // Ignorar mensagens privadas (notas internas)
     if (payload.message?.private) {
