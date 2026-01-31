@@ -42,12 +42,14 @@ services:
       EVOLUTION_API_URL: https://evo.odois.com.br
       EVOLUTION_API_KEY: a87ad2de419f678eccfdd25962db593cb6cbb7523a44dd57fbc9bfcbd938d1b1
       EVOLUTION_INSTANCE: castramais
-      # SMTP (Email) - Ethereal para testes
-      SMTP_HOST: smtp.ethereal.email
+      # SMTP (Email)
+      SMTP_HOST: smtp-pulse.com
       SMTP_PORT: 587
-      SMTP_USER: jerome.reilly7@ethereal.email
-      SMTP_PASS: WtpVeH9hJkdkm5TYGQ
-      SMTP_FROM: noreply@castramais.com.br
+      SMTP_USER: ahspimentel@gmail.com
+      SMTP_PASS: KrPtFbogt3N
+      SMTP_FROM: ahspimentel@gmail.com
+      # Chatwoot
+      CHATWOOT_URL: https://wpp.odois.com.br
     depends_on:
       db:
         condition: service_healthy
