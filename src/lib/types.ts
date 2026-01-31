@@ -20,6 +20,9 @@ export interface AnimalWithTutor {
   registroSinpatinhas: string
   status: 'pendente' | 'agendado' | 'realizado' | 'cancelado'
   dataAgendamento: string | null
+  horarioAgendamento: string | null
+  localAgendamento: string | null
+  enderecoAgendamento: string | null
   dataRealizacao: string | null
   observacoes: string | null
   createdAt: string
@@ -76,6 +79,9 @@ export interface UpdateAnimalDTO {
   registroSinpatinhas?: string | null
   status?: 'pendente' | 'agendado' | 'realizado' | 'cancelado'
   dataAgendamento?: string | null
+  horarioAgendamento?: string | null
+  localAgendamento?: string | null
+  enderecoAgendamento?: string | null
   dataRealizacao?: string | null
   observacoes?: string | null
 }

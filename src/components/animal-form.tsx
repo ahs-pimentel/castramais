@@ -52,6 +52,9 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
     observacoes: animal?.observacoes || '',
     status: animal?.status || 'pendente',
     dataAgendamento: animal?.dataAgendamento?.split('T')[0] || '',
+    horarioAgendamento: animal?.horarioAgendamento || '',
+    localAgendamento: animal?.localAgendamento || '',
+    enderecoAgendamento: animal?.enderecoAgendamento || '',
     dataRealizacao: animal?.dataRealizacao?.split('T')[0] || '',
     // Tutor
     tutorId: animal?.tutor?.id || '',
@@ -191,6 +194,9 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
           observacoes: formData.observacoes || null,
           status: formData.status as 'pendente' | 'agendado' | 'realizado' | 'cancelado',
           dataAgendamento: formData.dataAgendamento || null,
+          horarioAgendamento: formData.horarioAgendamento || null,
+          localAgendamento: formData.localAgendamento || null,
+          enderecoAgendamento: formData.enderecoAgendamento || null,
           dataRealizacao: formData.dataRealizacao || null,
         }
 
@@ -411,14 +417,6 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
                 options={statusOptions}
               />
               <Input
-                id="dataAgendamento"
-                name="dataAgendamento"
-                label="Data de Agendamento"
-                type="date"
-                value={formData.dataAgendamento}
-                onChange={handleChange}
-              />
-              <Input
                 id="dataRealizacao"
                 name="dataRealizacao"
                 label="Data de Realização"
@@ -427,6 +425,48 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
                 onChange={handleChange}
               />
             </div>
+
+            {/* Campos de agendamento - aparecem quando status é "agendado" ou quando já tem dados */}
+            {(formData.status === 'agendado' || formData.dataAgendamento) && (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-4">
+                <h3 className="font-medium text-blue-900">Dados do Agendamento</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input
+                    id="dataAgendamento"
+                    name="dataAgendamento"
+                    label="Data do Agendamento"
+                    type="date"
+                    value={formData.dataAgendamento}
+                    onChange={handleChange}
+                  />
+                  <Input
+                    id="horarioAgendamento"
+                    name="horarioAgendamento"
+                    label="Horário"
+                    type="time"
+                    value={formData.horarioAgendamento}
+                    onChange={handleChange}
+                    placeholder="Ex: 08:00"
+                  />
+                  <Input
+                    id="localAgendamento"
+                    name="localAgendamento"
+                    label="Local (Nome do estabelecimento)"
+                    value={formData.localAgendamento}
+                    onChange={handleChange}
+                    placeholder="Ex: Clínica Veterinária ABC"
+                  />
+                  <Input
+                    id="enderecoAgendamento"
+                    name="enderecoAgendamento"
+                    label="Endereço do Local"
+                    value={formData.enderecoAgendamento}
+                    onChange={handleChange}
+                    placeholder="Ex: Rua das Flores, 123 - Centro"
+                  />
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
