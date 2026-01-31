@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { Plus, ListFilter, Loader2 } from 'lucide-react'
+import { Plus, ListFilter, Loader2, FileDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { StatsCards } from '@/components/stats-cards'
 import { SearchFilter } from '@/components/search-filter'
 import { AnimalCard } from '@/components/animal-card'
 import { AnimalWithTutor, Stats } from '@/lib/types'
+import { gerarPDFAnimais } from '@/lib/pdf-generator'
 
 export default function DashboardPage() {
   const [animais, setAnimais] = useState<AnimalWithTutor[]>([])
@@ -79,12 +80,32 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      <SearchFilter
-        search={search}
-        status={status}
-        onSearchChange={setSearch}
-        onStatusChange={setStatus}
-      />
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <SearchFilter
+            search={search}
+            status={status}
+            onSearchChange={setSearch}
+            onStatusChange={setStatus}
+          />
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            const filtros = [
+              search && `Busca: "${search}"`,
+              status && `Status: ${status}`,
+            ].filter(Boolean).join(', ')
+            gerarPDFAnimais(animais, filtros || undefined)
+          }}
+          disabled={animais.length === 0}
+          className="shrink-0"
+        >
+          <FileDown className="w-4 h-4 mr-2" />
+          PDF
+        </Button>
+      </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-12">

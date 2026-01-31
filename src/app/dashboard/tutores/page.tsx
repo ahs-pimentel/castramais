@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Phone, Mail, MapPin, ChevronRight, PawPrint } from 'lucide-react'
+import { Search, Phone, Mail, MapPin, ChevronRight, PawPrint, FileDown } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+import { gerarPDFTutores } from '@/lib/pdf-generator'
 
 interface Tutor {
   id: string
@@ -75,6 +77,15 @@ export default function TutoresPage() {
           <h1 className="text-2xl font-bold text-gray-900">Tutores</h1>
           <p className="text-gray-500 mt-1">{tutores.length} tutores cadastrados</p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => gerarPDFTutores(tutoresFiltrados)}
+          disabled={tutoresFiltrados.length === 0}
+        >
+          <FileDown className="w-4 h-4 mr-2" />
+          Exportar PDF
+        </Button>
       </div>
 
       <div className="relative">

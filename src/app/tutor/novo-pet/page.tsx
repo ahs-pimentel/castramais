@@ -14,6 +14,7 @@ import {
   HelpCircle,
   ExternalLink
 } from 'lucide-react'
+import { validarSinpatinhas, getMensagemErroSinpatinhas } from '@/lib/validators'
 
 export default function NovoPetPage() {
   const router = useRouter()
@@ -52,9 +53,15 @@ export default function NovoPetPage() {
 
   const validate = () => {
     const newErrors: Record<string, string> = {}
+
+    // Validação do RG Animal (SinPatinhas)
     if (!formData.registroSinpatinhas.trim()) {
       newErrors.registroSinpatinhas = 'RG Animal é obrigatório'
+    } else if (!validarSinpatinhas(formData.registroSinpatinhas)) {
+      const msg = getMensagemErroSinpatinhas(formData.registroSinpatinhas)
+      newErrors.registroSinpatinhas = msg || 'Formato de RG Animal inválido'
     }
+
     if (!formData.nome.trim()) {
       newErrors.nome = 'Nome do pet é obrigatório'
     }
@@ -161,7 +168,7 @@ export default function NovoPetPage() {
               name="registroSinpatinhas"
               value={formData.registroSinpatinhas}
               onChange={handleChange}
-              placeholder="Ex: SP-2024-001234567"
+              placeholder="BR-000000000000"
               className={`w-full text-center text-lg font-mono px-4 py-3 border-2 rounded-xl focus:outline-none transition-colors ${
                 errors.registroSinpatinhas
                   ? 'border-red-300 focus:border-red-500'

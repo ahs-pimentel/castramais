@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/pool'
 import { extrairToken, verificarToken } from '@/lib/tutor-auth'
 import { notificarCadastroPet } from '@/lib/notifications'
+import { validarSinpatinhas, getMensagemErroSinpatinhas } from '@/lib/validators'
 import { v4 as uuidv4 } from 'uuid'
 
 export async function POST(request: NextRequest) {
@@ -37,6 +38,12 @@ export async function POST(request: NextRequest) {
     }
     if (!registroSinpatinhas?.trim()) {
       return NextResponse.json({ error: 'RG Animal (SinPatinhas) é obrigatório' }, { status: 400 })
+    }
+
+    // Validação do formato do código SinPatinhas
+    if (!validarSinpatinhas(registroSinpatinhas)) {
+      const mensagemErro = getMensagemErroSinpatinhas(registroSinpatinhas)
+      return NextResponse.json({ error: mensagemErro || 'Código SinPatinhas inválido' }, { status: 400 })
     }
     if (!especie || !['cachorro', 'gato'].includes(especie)) {
       return NextResponse.json({ error: 'Espécie inválida' }, { status: 400 })

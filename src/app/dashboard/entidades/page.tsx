@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Phone, Mail, MapPin, Building2, Check, X, Loader2 } from 'lucide-react'
+import { Search, Phone, Mail, MapPin, Building2, Check, X, Loader2, FileDown } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { gerarPDFEntidades } from '@/lib/pdf-generator'
 
 interface Entidade {
   id: string
@@ -106,6 +107,15 @@ export default function EntidadesPage() {
             )}
           </p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => gerarPDFEntidades(entidadesFiltradas)}
+          disabled={entidadesFiltradas.length === 0}
+        >
+          <FileDown className="w-4 h-4 mr-2" />
+          Exportar PDF
+        </Button>
       </div>
 
       <div className="relative">
