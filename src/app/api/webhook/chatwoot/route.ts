@@ -56,6 +56,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ status: 'ignored', reason: 'not a message event' })
     }
 
+    // Log para debug
+    console.log('[Webhook Chatwoot] Message type:', payload.message?.message_type)
+    console.log('[Webhook Chatwoot] Sender type:', payload.message?.sender?.type)
+    console.log('[Webhook Chatwoot] Private:', payload.message?.private)
+
     // Ignorar mensagens privadas (notas internas)
     if (payload.message?.private) {
       return NextResponse.json({ status: 'ignored', reason: 'private message' })
@@ -66,13 +71,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ status: 'ignored', reason: 'not outgoing message' })
     }
 
-    // Ignorar se não for enviada por um agente/operador
-    if (payload.message?.sender?.type !== 'user') {
+    // Verificar se é de um agente (user ou User)
+    const senderType = payload.message?.sender?.type?.toLowerCase()
+    if (senderType !== 'user') {
+      console.log('[Webhook Chatwoot] Ignorado - sender type:', senderType)
       return NextResponse.json({ status: 'ignored', reason: 'not from agent' })
     }
 
     // Obter o telefone do contato
     let telefone = ''
+
+    // Log para debug - ver estrutura do payload
+    console.log('[Webhook Chatwoot] contact_inbox:', JSON.stringify(payload.conversation?.contact_inbox))
+    console.log('[Webhook Chatwoot] meta.sender:', JSON.stringify(payload.conversation?.meta?.sender))
+    console.log('[Webhook Chatwoot] sender:', JSON.stringify(payload.sender))
 
     // Tentar obter do source_id (nosso identificador)
     if (payload.conversation?.contact_inbox?.source_id) {
@@ -86,6 +98,8 @@ export async function POST(request: NextRequest) {
     else if (payload.sender?.phone_number) {
       telefone = payload.sender.phone_number.replace(/\D/g, '')
     }
+
+    console.log('[Webhook Chatwoot] Telefone encontrado:', telefone)
 
     if (!telefone) {
       console.error('[Webhook Chatwoot] Telefone não encontrado no payload')
