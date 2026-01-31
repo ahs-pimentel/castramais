@@ -4,6 +4,7 @@ import { extrairTextoMensagem, extrairTelefone } from '@/lib/evolution'
 // Webhook que recebe mensagens do Evolution API (WhatsApp) e encaminha para Chatwoot
 
 const CHATWOOT_URL = process.env.CHATWOOT_URL || ''
+const CHATWOOT_ACCOUNT_ID = process.env.CHATWOOT_ACCOUNT_ID || '1'
 const CHATWOOT_INBOX_ID = process.env.CHATWOOT_INBOX_ID || ''
 const CHATWOOT_API_ACCESS_TOKEN = process.env.CHATWOOT_API_ACCESS_TOKEN || ''
 
@@ -63,8 +64,8 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Webhook Evolution] Mensagem de ${nome} (${telefone}): ${texto.substring(0, 50)}...`)
 
-    // Enviar para Chatwoot via API de inbox
-    if (CHATWOOT_URL && CHATWOOT_INBOX_ID && CHATWOOT_API_ACCESS_TOKEN) {
+    // Enviar para Chatwoot via API privada
+    if (CHATWOOT_URL && CHATWOOT_API_ACCESS_TOKEN) {
       await enviarParaChatwoot(telefone, nome, texto, payload.data.key.id)
     }
 
@@ -88,96 +89,127 @@ async function enviarParaChatwoot(
       numero = '55' + numero
     }
 
-    // Usar a API de inbox do Chatwoot para criar/atualizar conversa
-    // POST /api/v1/accounts/{account_id}/inboxes/{inbox_id}/incoming_webhooks
-    const webhookUrl = `${CHATWOOT_URL}/public/api/v1/inboxes/${CHATWOOT_INBOX_ID}/contacts`
+    const headers = {
+      'Content-Type': 'application/json',
+      'api_access_token': CHATWOOT_API_ACCESS_TOKEN,
+    }
 
-    // Primeiro, criar ou buscar o contato
-    const contactRes = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        identifier: numero,
-        identifier_hash: '', // Opcional para inbox API
-        name: nome,
-        phone_number: `+${numero}`,
-      }),
-    })
+    // 1. Buscar ou criar contato
+    let contactId: number | null = null
 
-    let contactData
-    if (contactRes.ok) {
-      contactData = await contactRes.json()
-    } else {
-      // Tentar buscar contato existente
-      const searchRes = await fetch(
-        `${CHATWOOT_URL}/public/api/v1/inboxes/${CHATWOOT_INBOX_ID}/contacts/${numero}`,
+    // Buscar contato existente
+    const searchRes = await fetch(
+      `${CHATWOOT_URL}/api/v1/accounts/${CHATWOOT_ACCOUNT_ID}/contacts/search?q=${numero}`,
+      { headers }
+    )
+
+    if (searchRes.ok) {
+      const searchData = await searchRes.json()
+      if (searchData.payload && searchData.payload.length > 0) {
+        contactId = searchData.payload[0].id
+        console.log(`[Chatwoot] Contato encontrado: ${contactId}`)
+      }
+    }
+
+    // Se não encontrou, criar novo contato
+    if (!contactId) {
+      const createContactRes = await fetch(
+        `${CHATWOOT_URL}/api/v1/accounts/${CHATWOOT_ACCOUNT_ID}/contacts`,
         {
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            inbox_id: parseInt(CHATWOOT_INBOX_ID) || 1,
+            name: nome,
+            phone_number: `+${numero}`,
+            identifier: numero,
+          }),
         }
       )
-      if (searchRes.ok) {
-        contactData = await searchRes.json()
+
+      if (createContactRes.ok) {
+        const contactData = await createContactRes.json()
+        contactId = contactData.payload?.contact?.id || contactData.id
+        console.log(`[Chatwoot] Contato criado: ${contactId}`)
       } else {
-        console.error('[Chatwoot] Erro ao criar/buscar contato:', await contactRes.text())
+        const err = await createContactRes.text()
+        console.error('[Chatwoot] Erro ao criar contato:', err)
         return
       }
     }
 
-    const sourceId = contactData.source_id || contactData.id
-
-    // Criar conversa ou buscar existente
-    const conversationRes = await fetch(
-      `${CHATWOOT_URL}/public/api/v1/inboxes/${CHATWOOT_INBOX_ID}/contacts/${sourceId}/conversations`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}),
-      }
-    )
-
-    let conversationData
-    if (conversationRes.ok) {
-      conversationData = await conversationRes.json()
-    } else {
-      // Buscar conversa existente
-      const convListRes = await fetch(
-        `${CHATWOOT_URL}/public/api/v1/inboxes/${CHATWOOT_INBOX_ID}/contacts/${sourceId}/conversations`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      )
-      if (convListRes.ok) {
-        const convList = await convListRes.json()
-        if (convList.length > 0) {
-          conversationData = convList[0]
-        }
-      }
-    }
-
-    if (!conversationData) {
-      console.error('[Chatwoot] Não foi possível criar/buscar conversa')
+    if (!contactId) {
+      console.error('[Chatwoot] Não foi possível obter ID do contato')
       return
     }
 
-    // Enviar mensagem na conversa
+    // 2. Buscar ou criar conversa
+    let conversationId: number | null = null
+
+    // Buscar conversas do contato
+    const convSearchRes = await fetch(
+      `${CHATWOOT_URL}/api/v1/accounts/${CHATWOOT_ACCOUNT_ID}/contacts/${contactId}/conversations`,
+      { headers }
+    )
+
+    if (convSearchRes.ok) {
+      const convData = await convSearchRes.json()
+      // Procurar conversa aberta na inbox correta
+      const openConv = convData.payload?.find(
+        (c: { inbox_id: number; status: string }) =>
+          c.status !== 'resolved'
+      )
+      if (openConv) {
+        conversationId = openConv.id
+        console.log(`[Chatwoot] Conversa encontrada: ${conversationId}`)
+      }
+    }
+
+    // Se não tem conversa aberta, criar nova
+    if (!conversationId) {
+      const createConvRes = await fetch(
+        `${CHATWOOT_URL}/api/v1/accounts/${CHATWOOT_ACCOUNT_ID}/conversations`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            inbox_id: parseInt(CHATWOOT_INBOX_ID) || 1,
+            contact_id: contactId,
+            source_id: numero,
+          }),
+        }
+      )
+
+      if (createConvRes.ok) {
+        const convData = await createConvRes.json()
+        conversationId = convData.id
+        console.log(`[Chatwoot] Conversa criada: ${conversationId}`)
+      } else {
+        const err = await createConvRes.text()
+        console.error('[Chatwoot] Erro ao criar conversa:', err)
+        return
+      }
+    }
+
+    if (!conversationId) {
+      console.error('[Chatwoot] Não foi possível obter ID da conversa')
+      return
+    }
+
+    // 3. Enviar mensagem na conversa
     const messageRes = await fetch(
-      `${CHATWOOT_URL}/public/api/v1/inboxes/${CHATWOOT_INBOX_ID}/contacts/${sourceId}/conversations/${conversationData.id}/messages`,
+      `${CHATWOOT_URL}/api/v1/accounts/${CHATWOOT_ACCOUNT_ID}/conversations/${conversationId}/messages`,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           content: texto,
-          echo_id: messageId, // ID único para evitar duplicação
+          message_type: 'incoming',
+          private: false,
+          sender: {
+            name: nome,
+            phone_number: `+${numero}`,
+          },
         }),
       }
     )
@@ -185,9 +217,25 @@ async function enviarParaChatwoot(
     if (messageRes.ok) {
       console.log(`[Chatwoot] Mensagem encaminhada: ${texto.substring(0, 30)}...`)
     } else {
-      console.error('[Chatwoot] Erro ao enviar mensagem:', await messageRes.text())
+      const err = await messageRes.text()
+      console.error('[Chatwoot] Erro ao enviar mensagem:', err)
     }
   } catch (error) {
     console.error('[Chatwoot] Erro ao enviar mensagem:', error)
   }
+}
+
+// GET para verificar se o endpoint está funcionando
+export async function GET() {
+  return NextResponse.json({
+    status: 'ok',
+    message: 'Webhook Evolution está funcionando',
+    config: {
+      chatwoot_url: CHATWOOT_URL ? 'configurado' : 'não configurado',
+      chatwoot_account: CHATWOOT_ACCOUNT_ID,
+      chatwoot_inbox: CHATWOOT_INBOX_ID ? 'configurado' : 'não configurado',
+      chatwoot_token: CHATWOOT_API_ACCESS_TOKEN ? 'configurado' : 'não configurado',
+    },
+    timestamp: new Date().toISOString(),
+  })
 }

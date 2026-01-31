@@ -51,7 +51,7 @@ services:
       # Chatwoot
       CHATWOOT_URL: https://wpp.odois.com.br
       CHATWOOT_ACCOUNT_ID: 1
-      CHATWOOT_INBOX_ID: 5kvPxFn8HLir45PYcqcBGtH2
+      CHATWOOT_INBOX_ID: 1
       CHATWOOT_API_ACCESS_TOKEN: 6jUye78fxFqy2G5CrCsTvrEj
     depends_on:
       db:
