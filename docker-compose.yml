@@ -48,8 +48,8 @@ services:
       SMTP_USER: ahspimentel@gmail.com
       SMTP_PASS: KrPtFbogt3N
       SMTP_FROM: ahspimentel@gmail.com
-      # Chatwoot
-      CHATWOOT_URL: https://wpp.odois.com.br
+      # Chatwoot (usando IP do host para comunicação interna)
+      CHATWOOT_URL: http://172.17.0.1:3001
       CHATWOOT_ACCOUNT_ID: 1
       CHATWOOT_INBOX_ID: 1
       CHATWOOT_API_ACCESS_TOKEN: 6jUye78fxFqy2G5CrCsTvrEj
