@@ -12,7 +12,9 @@ function addToCache(messageId: number) {
   if (processedMessages.size >= MAX_CACHE_SIZE) {
     // Remove o primeiro elemento (mais antigo)
     const first = processedMessages.values().next().value
-    processedMessages.delete(first)
+    if (first !== undefined) {
+      processedMessages.delete(first)
+    }
   }
   processedMessages.add(messageId)
 }
