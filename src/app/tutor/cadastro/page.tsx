@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { PawPrint, ArrowRight, ArrowLeft, Loader2, User, Phone, Mail, MapPin, Search } from 'lucide-react'
 import { formatCPF, validateCPF, formatPhone } from '@/lib/utils'
 import { formatarCEP } from '@/lib/cep'
+import { CIDADES_CAMPANHA, getCidadesCampanhaLista } from '@/lib/config/cities'
 
 export default function TutorCadastroPage() {
   const router = useRouter()
@@ -38,7 +39,7 @@ export default function TutorCadastroPage() {
     }
   }, [])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     let formattedValue = value
 
@@ -48,6 +49,13 @@ export default function TutorCadastroPage() {
       formattedValue = value.replace(/\D/g, '').slice(0, 11)
     } else if (name === 'cep') {
       formattedValue = value.replace(/\D/g, '').slice(0, 8)
+    }
+
+    // Se selecionou uma cidade, auto-preenche UF com MG
+    if (name === 'cidade' && formattedValue) {
+      setFormData(prev => ({ ...prev, [name]: formattedValue, uf: 'MG' }))
+      setError('')
+      return
     }
 
     setFormData(prev => ({ ...prev, [name]: formattedValue }))
@@ -68,12 +76,12 @@ export default function TutorCadastroPage() {
       const data = await res.json()
 
       if (res.ok) {
+        // Preenche apenas endereço e bairro do CEP
+        // Cidade deve ser selecionada manualmente das cidades da campanha
         setFormData(prev => ({
           ...prev,
           endereco: data.logradouro || '',
           bairro: data.bairro || '',
-          cidade: data.cidade || '',
-          uf: data.uf || '',
         }))
       } else {
         setCepError('CEP não encontrado')
@@ -416,14 +424,19 @@ export default function TutorCadastroPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Cidade *
                     </label>
-                    <input
-                      type="text"
+                    <select
                       name="cidade"
                       value={formData.cidade}
                       onChange={handleChange}
-                      placeholder="Nome da cidade"
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 focus:outline-none transition-colors"
-                    />
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 focus:outline-none transition-colors bg-white"
+                    >
+                      <option value="">Selecione a cidade</option>
+                      {getCidadesCampanhaLista().map(cidade => (
+                        <option key={cidade.key} value={cidade.nome}>
+                          {cidade.nome}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -433,13 +446,15 @@ export default function TutorCadastroPage() {
                       type="text"
                       name="uf"
                       value={formData.uf}
-                      onChange={handleChange}
-                      placeholder="SP"
-                      maxLength={2}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 focus:outline-none transition-colors uppercase"
+                      readOnly
+                      placeholder="MG"
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 text-gray-500 cursor-not-allowed uppercase"
                     />
                   </div>
                 </div>
+                <p className="text-xs text-amber-600 mt-1">
+                  A campanha de castração está disponível apenas para as cidades listadas acima.
+                </p>
 
                 {/* Aceite de Termos */}
                 <div className="mt-4 pt-4 border-t border-gray-100">

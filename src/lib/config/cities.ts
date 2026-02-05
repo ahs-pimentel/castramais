@@ -74,3 +74,12 @@ export function getNomeCidade(cidadeKey: CidadeCampanhaKey): string {
 export function getTodasCidadesKeys(): CidadeCampanhaKey[] {
   return Object.keys(CIDADES_CAMPANHA) as CidadeCampanhaKey[]
 }
+
+// Retorna lista de cidades para dropdown
+export function getCidadesCampanhaLista(): { key: CidadeCampanhaKey; nome: string; uf: string }[] {
+  return Object.entries(CIDADES_CAMPANHA).map(([key, config]) => ({
+    key: key as CidadeCampanhaKey,
+    nome: config.nome,
+    uf: config.uf
+  }))
+}
