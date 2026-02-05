@@ -2,25 +2,21 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { PawPrint, ArrowRight, ArrowLeft, Loader2, User, Phone, Mail, MapPin, Search } from 'lucide-react'
+import { PawPrint, ArrowRight, ArrowLeft, Loader2, User, Phone, Mail, MapPin } from 'lucide-react'
 import { formatCPF, validateCPF, formatPhone } from '@/lib/utils'
-import { formatarCEP } from '@/lib/cep'
-import { CIDADES_CAMPANHA, getCidadesCampanhaLista } from '@/lib/config/cities'
+import { getCidadesCampanhaLista } from '@/lib/config/cities'
 
 export default function TutorCadastroPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
-  const [loadingCep, setLoadingCep] = useState(false)
   const [error, setError] = useState('')
-  const [cepError, setCepError] = useState('')
 
   const [formData, setFormData] = useState({
     nome: '',
     cpf: '',
     telefone: '',
     email: '',
-    cep: '',
     endereco: '',
     numero: '',
     complemento: '',
@@ -47,8 +43,6 @@ export default function TutorCadastroPage() {
       formattedValue = value.replace(/\D/g, '').slice(0, 11)
     } else if (name === 'telefone') {
       formattedValue = value.replace(/\D/g, '').slice(0, 11)
-    } else if (name === 'cep') {
-      formattedValue = value.replace(/\D/g, '').slice(0, 8)
     }
 
     // Se selecionou uma cidade, auto-preenche UF com MG
@@ -60,37 +54,6 @@ export default function TutorCadastroPage() {
 
     setFormData(prev => ({ ...prev, [name]: formattedValue }))
     setError('')
-
-    // Buscar CEP automaticamente quando tiver 8 dígitos
-    if (name === 'cep' && formattedValue.length === 8) {
-      buscarCep(formattedValue)
-    }
-  }
-
-  const buscarCep = async (cep: string) => {
-    setLoadingCep(true)
-    setCepError('')
-
-    try {
-      const res = await fetch(`/api/cep/${cep}`)
-      const data = await res.json()
-
-      if (res.ok) {
-        // Preenche apenas endereço e bairro do CEP
-        // Cidade deve ser selecionada manualmente das cidades da campanha
-        setFormData(prev => ({
-          ...prev,
-          endereco: data.logradouro || '',
-          bairro: data.bairro || '',
-        }))
-      } else {
-        setCepError('CEP não encontrado')
-      }
-    } catch {
-      setCepError('Erro ao buscar CEP')
-    } finally {
-      setLoadingCep(false)
-    }
   }
 
   const validateStep1 = () => {
@@ -110,8 +73,8 @@ export default function TutorCadastroPage() {
   }
 
   const validateStep2 = () => {
-    if (!formData.cep || formData.cep.length !== 8) {
-      setError('CEP é obrigatório')
+    if (!formData.cidade.trim()) {
+      setError('Cidade é obrigatória')
       return false
     }
     if (!formData.endereco.trim()) {
@@ -124,10 +87,6 @@ export default function TutorCadastroPage() {
     }
     if (!formData.bairro.trim()) {
       setError('Bairro é obrigatório')
-      return false
-    }
-    if (!formData.cidade.trim()) {
-      setError('Cidade é obrigatória')
       return false
     }
     if (!formData.aceitaTermos) {
@@ -318,47 +277,30 @@ export default function TutorCadastroPage() {
                   </div>
                   <div>
                     <h2 className="font-semibold text-gray-900">Endereço</h2>
-                    <p className="text-xs text-gray-500">Digite o CEP para preencher automaticamente</p>
+                    <p className="text-xs text-gray-500">Selecione sua cidade e preencha o endereço</p>
                   </div>
                 </div>
 
+                {/* Cidade - Primeiro campo */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    CEP *
+                    Cidade *
                   </label>
-                  <div className="relative">
-                    <input
-                      type="tel"
-                      inputMode="numeric"
-                      name="cep"
-                      value={formatarCEP(formData.cep)}
-                      onChange={handleChange}
-                      placeholder="00000-000"
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 focus:outline-none transition-colors font-mono pr-12"
-                    />
-                    {loadingCep && (
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                        <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                      </div>
-                    )}
-                    {!loadingCep && formData.cep.length === 8 && !cepError && (
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                        <Search className="w-5 h-5 text-green-500" />
-                      </div>
-                    )}
-                  </div>
-                  {cepError && (
-                    <p className="text-xs text-red-500 mt-1">{cepError}</p>
-                  )}
-                  <p className="text-xs text-gray-500 mt-1">
-                    <a
-                      href="https://buscacepinter.correios.com.br/app/endereco/index.php"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline"
-                    >
-                      Não sabe o CEP? Consulte aqui
-                    </a>
+                  <select
+                    name="cidade"
+                    value={formData.cidade}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 focus:outline-none transition-colors bg-white"
+                  >
+                    <option value="">Selecione sua cidade</option>
+                    {getCidadesCampanhaLista().map(cidade => (
+                      <option key={cidade.key} value={cidade.nome}>
+                        {cidade.nome} - {cidade.uf}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-amber-600 mt-1">
+                    A campanha está disponível apenas para as cidades listadas
                   </p>
                 </div>
 
@@ -418,43 +360,6 @@ export default function TutorCadastroPage() {
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 focus:outline-none transition-colors"
                   />
                 </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Cidade *
-                    </label>
-                    <select
-                      name="cidade"
-                      value={formData.cidade}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 focus:outline-none transition-colors bg-white"
-                    >
-                      <option value="">Selecione a cidade</option>
-                      {getCidadesCampanhaLista().map(cidade => (
-                        <option key={cidade.key} value={cidade.nome}>
-                          {cidade.nome}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      UF
-                    </label>
-                    <input
-                      type="text"
-                      name="uf"
-                      value={formData.uf}
-                      readOnly
-                      placeholder="MG"
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 text-gray-500 cursor-not-allowed uppercase"
-                    />
-                  </div>
-                </div>
-                <p className="text-xs text-amber-600 mt-1">
-                  A campanha de castração está disponível apenas para as cidades listadas acima.
-                </p>
 
                 {/* Aceite de Termos */}
                 <div className="mt-4 pt-4 border-t border-gray-100">
