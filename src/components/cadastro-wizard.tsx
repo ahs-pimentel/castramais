@@ -22,8 +22,8 @@ import { Card, CardContent } from './ui/card'
 import { OnboardingSinpatinhas } from './onboarding-sinpatinhas'
 import { CreateAnimalDTO } from '@/lib/types'
 import { formatCPF, cleanCPF, validateCPF } from '@/lib/utils'
-import { formatarCEP } from '@/lib/cep'
 import { validarSinpatinhas, getMensagemErroSinpatinhas } from '@/lib/validators'
+import { getCidadesCampanhaLista } from '@/lib/config/cities'
 
 const especieOptions = [
   { value: 'cachorro', label: 'Cachorro' },
@@ -41,15 +41,19 @@ const STEPS = [
   { id: 'animal', title: 'Pet', icon: PawPrint },
 ]
 
+// Opções de cidades da campanha para o select
+const cidadeOptions = getCidadesCampanhaLista().map(c => ({
+  value: c.nome,
+  label: `${c.nome} - ${c.uf}`
+}))
+
 export function CadastroWizard() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(0)
   const [showOnboarding, setShowOnboarding] = useState(true)
   const [loading, setLoading] = useState(false)
   const [searchingTutor, setSearchingTutor] = useState(false)
-  const [searchingCep, setSearchingCep] = useState(false)
   const [tutorFound, setTutorFound] = useState<boolean | null>(null)
-  const [cepError, setCepError] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const [formData, setFormData] = useState({
@@ -61,7 +65,6 @@ export function CadastroWizard() {
     tutorNome: '',
     tutorTelefone: '',
     tutorEmail: '',
-    tutorCep: '',
     tutorEndereco: '',
     tutorNumero: '',
     tutorComplemento: '',
@@ -83,6 +86,14 @@ export function CadastroWizard() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target
+
+    // Se selecionou uma cidade, auto-preenche UF com MG
+    if (name === 'tutorCidade' && value) {
+      setFormData((prev) => ({ ...prev, [name]: value, tutorUf: 'MG' }))
+      setErrors((prev) => ({ ...prev, [name]: '' }))
+      return
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }))
     setErrors((prev) => ({ ...prev, [name]: '' }))
   }
@@ -95,15 +106,6 @@ export function CadastroWizard() {
       searchTutor(value)
     } else {
       setTutorFound(null)
-    }
-  }
-
-  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '').slice(0, 8)
-    setFormData((prev) => ({ ...prev, tutorCep: value }))
-    setCepError('')
-    if (value.length === 8) {
-      searchCep(value)
     }
   }
 
@@ -131,7 +133,6 @@ export function CadastroWizard() {
           tutorNome: '',
           tutorTelefone: '',
           tutorEmail: '',
-          tutorCep: '',
           tutorEndereco: '',
           tutorNumero: '',
           tutorComplemento: '',
@@ -145,30 +146,6 @@ export function CadastroWizard() {
       setTutorFound(false)
     } finally {
       setSearchingTutor(false)
-    }
-  }
-
-  const searchCep = async (cep: string) => {
-    setSearchingCep(true)
-    setCepError('')
-    try {
-      const res = await fetch(`/api/cep/${cep}`)
-      if (res.ok) {
-        const data = await res.json()
-        setFormData((prev) => ({
-          ...prev,
-          tutorEndereco: data.logradouro || '',
-          tutorBairro: data.bairro || '',
-          tutorCidade: data.cidade || '',
-          tutorUf: data.uf || '',
-        }))
-      } else {
-        setCepError('CEP não encontrado')
-      }
-    } catch {
-      setCepError('Erro ao buscar CEP')
-    } finally {
-      setSearchingCep(false)
     }
   }
 
@@ -194,11 +171,10 @@ export function CadastroWizard() {
       if (tutorFound === false) {
         if (!formData.tutorNome.trim()) newErrors.tutorNome = 'Nome é obrigatório'
         if (!formData.tutorTelefone.trim()) newErrors.tutorTelefone = 'Telefone é obrigatório'
-        if (!formData.tutorCep || formData.tutorCep.length !== 8) newErrors.tutorCep = 'CEP é obrigatório'
+        if (!formData.tutorCidade.trim()) newErrors.tutorCidade = 'Cidade é obrigatória'
         if (!formData.tutorEndereco.trim()) newErrors.tutorEndereco = 'Endereço é obrigatório'
         if (!formData.tutorNumero.trim()) newErrors.tutorNumero = 'Número é obrigatório'
         if (!formData.tutorBairro.trim()) newErrors.tutorBairro = 'Bairro é obrigatório'
-        if (!formData.tutorCidade.trim()) newErrors.tutorCidade = 'Cidade é obrigatória'
       }
 
       if (tutorFound === null) {
@@ -482,28 +458,30 @@ export function CadastroWizard() {
                   />
                 </div>
 
-                {/* Seção de Endereço com CEP */}
+                {/* Seção de Endereço */}
                 <div className="pt-4 border-t border-gray-200">
                   <div className="flex items-center gap-2 mb-4">
                     <MapPin className="w-5 h-5 text-gray-600" />
                     <span className="font-medium text-gray-900">Endereço</span>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="relative">
-                      <Input
-                        id="tutorCep"
-                        name="tutorCep"
-                        label="CEP"
-                        value={formatarCEP(formData.tutorCep)}
-                        onChange={handleCepChange}
-                        placeholder="00000-000"
-                        error={errors.tutorCep || cepError}
-                      />
-                      {searchingCep && (
-                        <Loader2 className="absolute right-3 top-9 w-5 h-5 text-gray-400 animate-spin" />
-                      )}
-                    </div>
+                  {/* Cidade - Primeiro campo */}
+                  <div className="mb-4">
+                    <Select
+                      id="tutorCidade"
+                      name="tutorCidade"
+                      label="Cidade"
+                      value={formData.tutorCidade}
+                      onChange={handleChange}
+                      options={[{ value: '', label: 'Selecione a cidade' }, ...cidadeOptions]}
+                      error={errors.tutorCidade}
+                    />
+                    <p className="text-xs text-amber-600 mt-1">
+                      A campanha está disponível apenas para as cidades listadas
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="md:col-span-2">
                       <Input
                         id="tutorEndereco"
@@ -538,7 +516,7 @@ export function CadastroWizard() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                  <div className="mt-4">
                     <Input
                       id="tutorBairro"
                       name="tutorBairro"
@@ -547,36 +525,7 @@ export function CadastroWizard() {
                       onChange={handleChange}
                       error={errors.tutorBairro}
                     />
-                    <Input
-                      id="tutorCidade"
-                      name="tutorCidade"
-                      label="Cidade"
-                      value={formData.tutorCidade}
-                      onChange={handleChange}
-                      error={errors.tutorCidade}
-                    />
-                    <Input
-                      id="tutorUf"
-                      name="tutorUf"
-                      label="UF"
-                      value={formData.tutorUf}
-                      onChange={handleChange}
-                      placeholder="SP"
-                      maxLength={2}
-                      className="uppercase"
-                    />
                   </div>
-
-                  <p className="text-xs text-gray-500 mt-2">
-                    <a
-                      href="https://buscacepinter.correios.com.br/app/endereco/index.php"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:underline"
-                    >
-                      Não sabe o CEP? Consulte aqui
-                    </a>
-                  </p>
                 </div>
               </div>
             )}
