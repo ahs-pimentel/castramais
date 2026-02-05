@@ -160,6 +160,53 @@ Enquanto isso, mantenha seus dados atualizados no app.
   return { success: false, error: 'Não foi possível enviar notificação' }
 }
 
+// Notificação: Pet cadastrado em Lista de Espera (vagas esgotadas)
+export async function notificarListaEspera(
+  telefone: string,
+  email: string | null,
+  nomeTutor: string,
+  nomePet: string,
+  especie: string,
+  posicaoFila: number
+): Promise<NotificacaoResult> {
+  const emoji = especie.toLowerCase() === 'canino' ? '🐕' : '🐱'
+
+  const mensagem = `*Castra+MG* ${emoji}
+
+Olá, *${nomeTutor}*!
+
+O cadastro do seu pet *${nomePet}* foi realizado com sucesso!
+
+⚠️ *Status:* Lista de Espera
+📍 *Posição na fila:* ${posicaoFila}º
+
+Infelizmente, as vagas para castração na sua cidade já foram preenchidas nesta campanha. Mas não se preocupe!
+
+✅ Seu cadastro está salvo e você será notificado assim que surgirem novas vagas ou uma nova campanha for aberta em sua região.
+
+Fique atento ao seu WhatsApp!
+
+🐾 Castra+MG - Castração é um gesto de amor!`
+
+  const result = await enviarWhatsApp(telefone, mensagem)
+  if (result.success) {
+    return { success: true, metodo: 'whatsapp' }
+  }
+
+  if (email) {
+    const emailResult = await enviarEmail(
+      email,
+      `${nomePet} na Lista de Espera - Castra+MG`,
+      mensagem.replace(/\*/g, '')
+    )
+    if (emailResult.success) {
+      return { success: true, metodo: 'email' }
+    }
+  }
+
+  return { success: false, error: 'Não foi possível enviar notificação' }
+}
+
 // Notificação: Animal agendado para castração
 export async function notificarAgendamento(
   telefone: string,

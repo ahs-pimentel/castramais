@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/pool'
 import { extrairToken, verificarToken } from '@/lib/tutor-auth'
-import { notificarCadastroPet } from '@/lib/notifications'
+import { notificarCadastroPet, notificarListaEspera } from '@/lib/notifications'
 import { validarSinpatinhas, getMensagemErroSinpatinhas } from '@/lib/validators'
+import { verificarDisponibilidadeVaga } from '@/lib/services/vagas'
 import { v4 as uuidv4 } from 'uuid'
 
 export async function POST(request: NextRequest) {
@@ -67,12 +68,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Buscar dados do tutor para notificação
+    // Buscar dados do tutor para notificação e verificação de vagas
     const tutorResult = await pool.query(
-      'SELECT nome, telefone, email FROM tutores WHERE id = $1',
+      'SELECT nome, telefone, email, cidade FROM tutores WHERE id = $1',
       [payload.tutorId]
     )
     const tutor = tutorResult.rows[0]
+
+    // Verificar disponibilidade de vagas na cidade do tutor
+    const { disponivel, vagasInfo, cidadeValida } = await verificarDisponibilidadeVaga(tutor?.cidade || '')
+
+    // Determinar status baseado na disponibilidade de vagas
+    let statusFinal = 'pendente'
+    if (cidadeValida && !disponivel) {
+      statusFinal = 'lista_espera'
+    }
 
     // Criar animal vinculado ao tutor logado
     const animalId = uuidv4()
@@ -94,23 +104,43 @@ export async function POST(request: NextRequest) {
         registroSinpatinhas.trim(),
         observacoes?.trim() || null,
         payload.tutorId,
-        'pendente',
+        statusFinal,
       ]
     )
 
-    // Enviar notificação de cadastro via WhatsApp (async, não bloqueia resposta)
+    // Enviar notificação apropriada via WhatsApp (async, não bloqueia resposta)
     if (tutor?.telefone) {
       const especieNotif = especie === 'cachorro' ? 'canino' : 'felino'
-      notificarCadastroPet(
-        tutor.telefone,
-        tutor.email || null,
-        tutor.nome,
-        nome.trim(),
-        especieNotif
-      ).catch(err => console.error('Erro ao enviar notificação de cadastro:', err))
+
+      if (statusFinal === 'lista_espera') {
+        // Notificação de lista de espera
+        const posicaoFila = (vagasInfo?.listaEspera || 0) + 1
+        notificarListaEspera(
+          tutor.telefone,
+          tutor.email || null,
+          tutor.nome,
+          nome.trim(),
+          especieNotif,
+          posicaoFila
+        ).catch(err => console.error('Erro ao enviar notificação de lista de espera:', err))
+      } else {
+        // Notificação de cadastro normal
+        notificarCadastroPet(
+          tutor.telefone,
+          tutor.email || null,
+          tutor.nome,
+          nome.trim(),
+          especieNotif
+        ).catch(err => console.error('Erro ao enviar notificação de cadastro:', err))
+      }
     }
 
-    return NextResponse.json(result.rows[0], { status: 201 })
+    // Retornar com informação adicional sobre lista de espera
+    return NextResponse.json({
+      ...result.rows[0],
+      listaEspera: statusFinal === 'lista_espera',
+      posicaoListaEspera: statusFinal === 'lista_espera' ? (vagasInfo?.listaEspera || 0) + 1 : null
+    }, { status: 201 })
   } catch (error) {
     console.error('Erro ao cadastrar animal:', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })

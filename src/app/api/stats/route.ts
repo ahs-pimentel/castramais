@@ -15,7 +15,8 @@ export async function GET(request: NextRequest) {
         COUNT(*) as total,
         COUNT(*) FILTER (WHERE status = 'pendente') as pendentes,
         COUNT(*) FILTER (WHERE status = 'agendado') as agendados,
-        COUNT(*) FILTER (WHERE status = 'realizado') as realizados
+        COUNT(*) FILTER (WHERE status = 'realizado') as realizados,
+        COUNT(*) FILTER (WHERE status = 'lista_espera') as lista_espera
       FROM animais
     `)
 
@@ -26,6 +27,7 @@ export async function GET(request: NextRequest) {
       pendentes: parseInt(stats.pendentes),
       agendados: parseInt(stats.agendados),
       realizados: parseInt(stats.realizados),
+      listaEspera: parseInt(stats.lista_espera),
     })
   } catch (error) {
     console.error('Erro ao buscar estatísticas:', error)

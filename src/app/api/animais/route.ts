@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { pool } from '@/lib/pool'
+import { CIDADES_CAMPANHA } from '@/lib/config/cities'
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -13,7 +14,57 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search') || ''
     const status = searchParams.get('status') || ''
+    const cidade = searchParams.get('cidade') || ''
 
+    // Paginação (opcional - mantém compatibilidade)
+    const pageParam = searchParams.get('page')
+    const limitParam = searchParams.get('limit')
+    const usePagination = pageParam !== null || limitParam !== null
+    const page = Math.max(1, Number(pageParam) || 1)
+    const limit = Math.min(Math.max(1, Number(limitParam) || 50), 100) // máximo 100
+
+    let baseQuery = `
+      FROM animais a
+      LEFT JOIN tutores t ON a."tutorId" = t.id
+      WHERE 1=1
+    `
+    const params: (string | number)[] = []
+    let paramIndex = 1
+
+    if (status) {
+      baseQuery += ` AND a.status = $${paramIndex}`
+      params.push(status)
+      paramIndex++
+    }
+
+    if (cidade) {
+      // Filtrar por cidade usando as variações do nome
+      const cidadeConfig = CIDADES_CAMPANHA[cidade]
+      if (cidadeConfig) {
+        const variacoes = cidadeConfig.variacoes.flatMap(v => [
+          `${v}/${cidadeConfig.uf}`,
+          v
+        ])
+        const likeConditions = variacoes.map((_, i) => `LOWER(t.cidade) LIKE LOWER($${paramIndex + i})`).join(' OR ')
+        baseQuery += ` AND (${likeConditions})`
+        variacoes.forEach(v => params.push(`%${v}%`))
+        paramIndex += variacoes.length
+      }
+    }
+
+    if (search) {
+      baseQuery += ` AND (
+        a.nome ILIKE $${paramIndex} OR
+        a."registroSinpatinhas" ILIKE $${paramIndex} OR
+        t.nome ILIKE $${paramIndex} OR
+        t.telefone ILIKE $${paramIndex} OR
+        t.cidade ILIKE $${paramIndex}
+      )`
+      params.push(`%${search}%`)
+      paramIndex++
+    }
+
+    // Query principal com SELECT
     let query = `
       SELECT
         a.*,
@@ -27,35 +78,39 @@ export async function GET(request: NextRequest) {
           'cidade', t.cidade,
           'bairro', t.bairro
         ) as tutor
-      FROM animais a
-      LEFT JOIN tutores t ON a."tutorId" = t.id
-      WHERE 1=1
+      ${baseQuery}
+      ORDER BY a."createdAt" DESC
     `
-    const params: string[] = []
-    let paramIndex = 1
 
-    if (status) {
-      query += ` AND a.status = $${paramIndex}`
-      params.push(status)
-      paramIndex++
+    // Aplica paginação se solicitada
+    if (usePagination) {
+      const offset = (page - 1) * limit
+      query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`
+      params.push(limit, offset)
+
+      // Conta total para metadados
+      const countResult = await pool.query(
+        `SELECT COUNT(*)::int as total ${baseQuery}`,
+        params.slice(0, paramIndex - 1)
+      )
+      const total = countResult.rows[0].total
+      const result = await pool.query(query, params)
+
+      return NextResponse.json({
+        data: result.rows,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNext: page * limit < total,
+          hasPrev: page > 1
+        }
+      })
     }
 
-    if (search) {
-      query += ` AND (
-        a.nome ILIKE $${paramIndex} OR
-        a."registroSinpatinhas" ILIKE $${paramIndex} OR
-        t.nome ILIKE $${paramIndex} OR
-        t.telefone ILIKE $${paramIndex} OR
-        t.cidade ILIKE $${paramIndex}
-      )`
-      params.push(`%${search}%`)
-      paramIndex++
-    }
-
-    query += ` ORDER BY a."createdAt" DESC`
-
+    // Sem paginação (comportamento original)
     const result = await pool.query(query, params)
-
     return NextResponse.json(result.rows)
   } catch (error) {
     console.error('Erro ao buscar animais:', error)

@@ -2,7 +2,7 @@ import { HTMLAttributes, forwardRef } from 'react'
 import { cn } from '@/lib/utils'
 
 interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
-  variant?: 'pendente' | 'agendado' | 'realizado' | 'cancelado'
+  variant?: 'pendente' | 'agendado' | 'realizado' | 'cancelado' | 'lista_espera'
 }
 
 const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
@@ -17,6 +17,7 @@ const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
             'bg-scheduled-bg text-scheduled-text': variant === 'agendado',
             'bg-completed-bg text-completed-text': variant === 'realizado',
             'bg-canceled-bg text-canceled-text': variant === 'cancelado',
+            'bg-amber-100 text-amber-700': variant === 'lista_espera',
           },
           className
         )}

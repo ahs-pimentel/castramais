@@ -11,11 +11,12 @@ interface AnimalCardProps {
   animal: AnimalWithTutor
 }
 
-const statusLabels = {
+const statusLabels: Record<string, string> = {
   pendente: 'Pendente',
   agendado: 'Agendado',
   realizado: 'Realizado',
   cancelado: 'Cancelado',
+  lista_espera: 'Lista de Espera',
 }
 
 export function AnimalCard({ animal }: AnimalCardProps) {

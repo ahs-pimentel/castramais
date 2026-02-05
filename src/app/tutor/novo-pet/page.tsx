@@ -15,11 +15,14 @@ import {
   ExternalLink
 } from 'lucide-react'
 import { validarSinpatinhas, getMensagemErroSinpatinhas } from '@/lib/validators'
+import { VagasStatus } from '@/components/vagas-status'
 
 export default function NovoPetPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [listaEspera, setListaEspera] = useState(false)
+  const [posicaoFila, setPosicaoFila] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -99,9 +102,13 @@ export default function NovoPetPage() {
 
       if (res.ok) {
         setSuccess(true)
+        if (data.listaEspera) {
+          setListaEspera(true)
+          setPosicaoFila(data.posicaoListaEspera)
+        }
         setTimeout(() => {
           router.push('/tutor/meus-pets')
-        }, 2000)
+        }, 3000)
       } else {
         setError(data.error || 'Erro ao cadastrar pet')
       }
@@ -116,11 +123,32 @@ export default function NovoPetPage() {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="text-center">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle2 className="w-10 h-10 text-green-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Pet cadastrado!</h1>
-          <p className="text-gray-500">Redirecionando para seus pets...</p>
+          {listaEspera ? (
+            <>
+              <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <HelpCircle className="w-10 h-10 text-amber-600" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Pet cadastrado!</h1>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 max-w-sm mx-auto">
+                <p className="text-amber-700 text-sm">
+                  <strong>Status:</strong> Lista de Espera
+                  {posicaoFila && <span> (Posição: {posicaoFila}º)</span>}
+                </p>
+                <p className="text-amber-600 text-xs mt-2">
+                  As vagas na sua cidade estão esgotadas. Você será notificado quando houver novas vagas.
+                </p>
+              </div>
+              <p className="text-gray-500">Redirecionando para seus pets...</p>
+            </>
+          ) : (
+            <>
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle2 className="w-10 h-10 text-green-600" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Pet cadastrado!</h1>
+              <p className="text-gray-500">Redirecionando para seus pets...</p>
+            </>
+          )}
         </div>
       </div>
     )
@@ -150,6 +178,9 @@ export default function NovoPetPage() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="px-6 mt-6 space-y-6">
+        {/* Status de Vagas */}
+        <VagasStatus />
+
         {/* RG Animal */}
         <div className="bg-white rounded-2xl shadow-sm p-5 space-y-4">
           <div className="flex items-center gap-3 mb-2">

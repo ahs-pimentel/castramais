@@ -1,6 +1,6 @@
 'use client'
 
-import { ClipboardList, Clock, Calendar, CheckCircle } from 'lucide-react'
+import { ClipboardList, Clock, Calendar, CheckCircle, Hourglass } from 'lucide-react'
 import { Card } from './ui/card'
 import { Stats } from '@/lib/types'
 
@@ -38,10 +38,17 @@ export function StatsCards({ stats }: StatsCardsProps) {
       bgColor: 'bg-completed-bg',
       iconColor: 'text-completed-text',
     },
+    {
+      label: 'Lista Espera',
+      value: stats.listaEspera,
+      icon: Hourglass,
+      bgColor: 'bg-amber-50',
+      iconColor: 'text-amber-600',
+    },
   ]
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
       {cards.map((card) => (
         <Card key={card.label} className={card.bgColor}>
           <div className="p-4">

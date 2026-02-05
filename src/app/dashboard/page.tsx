@@ -12,9 +12,10 @@ import { gerarPDFAnimais } from '@/lib/pdf-generator'
 
 export default function DashboardPage() {
   const [animais, setAnimais] = useState<AnimalWithTutor[]>([])
-  const [stats, setStats] = useState<Stats>({ total: 0, pendentes: 0, agendados: 0, realizados: 0 })
+  const [stats, setStats] = useState<Stats>({ total: 0, pendentes: 0, agendados: 0, realizados: 0, listaEspera: 0 })
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
+  const [cidade, setCidade] = useState('')
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'lista' | 'novo'>('lista')
 
@@ -24,6 +25,7 @@ export default function DashboardPage() {
       const params = new URLSearchParams()
       if (search) params.set('search', search)
       if (status) params.set('status', status)
+      if (cidade) params.set('cidade', cidade)
 
       const [animaisRes, statsRes] = await Promise.all([
         fetch(`/api/animais?${params}`),
@@ -44,7 +46,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [search, status])
+  }, [search, status, cidade])
 
   useEffect(() => {
     const debounce = setTimeout(() => {
@@ -85,8 +87,11 @@ export default function DashboardPage() {
           <SearchFilter
             search={search}
             status={status}
+            cidade={cidade}
             onSearchChange={setSearch}
             onStatusChange={setStatus}
+            onCidadeChange={setCidade}
+            showCidadeFilter={true}
           />
         </div>
         <Button
@@ -96,6 +101,7 @@ export default function DashboardPage() {
             const filtros = [
               search && `Busca: "${search}"`,
               status && `Status: ${status}`,
+              cidade && `Cidade: ${cidade}`,
             ].filter(Boolean).join(', ')
             gerarPDFAnimais(animais, filtros || undefined)
           }}

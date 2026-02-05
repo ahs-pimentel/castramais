@@ -7,8 +7,11 @@ import { Select } from './ui/select'
 interface SearchFilterProps {
   search: string
   status: string
+  cidade?: string
   onSearchChange: (value: string) => void
   onStatusChange: (value: string) => void
+  onCidadeChange?: (value: string) => void
+  showCidadeFilter?: boolean
 }
 
 const statusOptions = [
@@ -17,13 +20,25 @@ const statusOptions = [
   { value: 'agendado', label: 'Agendado' },
   { value: 'realizado', label: 'Realizado' },
   { value: 'cancelado', label: 'Cancelado' },
+  { value: 'lista_espera', label: 'Lista de Espera' },
+]
+
+const cidadeOptions = [
+  { value: '', label: 'Todas as cidades' },
+  { value: 'entre-rios-de-minas', label: 'Entre Rios de Minas' },
+  { value: 'caranaiba', label: 'Caranaíba' },
+  { value: 'carandai', label: 'Carandaí' },
+  { value: 'barbacena', label: 'Barbacena' },
 ]
 
 export function SearchFilter({
   search,
   status,
+  cidade = '',
   onSearchChange,
   onStatusChange,
+  onCidadeChange,
+  showCidadeFilter = false,
 }: SearchFilterProps) {
   return (
     <div className="space-y-3">
@@ -37,11 +52,20 @@ export function SearchFilter({
           className="pl-10"
         />
       </div>
-      <Select
-        value={status}
-        onChange={(e) => onStatusChange(e.target.value)}
-        options={statusOptions}
-      />
+      <div className={`grid gap-3 ${showCidadeFilter ? 'grid-cols-2' : 'grid-cols-1'}`}>
+        <Select
+          value={status}
+          onChange={(e) => onStatusChange(e.target.value)}
+          options={statusOptions}
+        />
+        {showCidadeFilter && onCidadeChange && (
+          <Select
+            value={cidade}
+            onChange={(e) => onCidadeChange(e.target.value)}
+            options={cidadeOptions}
+          />
+        )}
+      </div>
     </div>
   )
 }

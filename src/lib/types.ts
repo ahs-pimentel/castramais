@@ -18,7 +18,7 @@ export interface AnimalWithTutor {
   idadeAnos: number | null
   idadeMeses: number | null
   registroSinpatinhas: string
-  status: 'pendente' | 'agendado' | 'realizado' | 'cancelado'
+  status: 'pendente' | 'agendado' | 'realizado' | 'cancelado' | 'lista_espera'
   dataAgendamento: string | null
   horarioAgendamento: string | null
   localAgendamento: string | null
@@ -44,6 +44,7 @@ export interface Stats {
   pendentes: number
   agendados: number
   realizados: number
+  listaEspera: number
 }
 
 export interface CreateAnimalDTO {
@@ -77,7 +78,7 @@ export interface UpdateAnimalDTO {
   idadeAnos?: number | null
   idadeMeses?: number | null
   registroSinpatinhas?: string | null
-  status?: 'pendente' | 'agendado' | 'realizado' | 'cancelado'
+  status?: 'pendente' | 'agendado' | 'realizado' | 'cancelado' | 'lista_espera'
   dataAgendamento?: string | null
   horarioAgendamento?: string | null
   localAgendamento?: string | null
