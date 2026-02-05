@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Plus, ListFilter, Loader2, FileDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { StatsCards } from '@/components/stats-cards'
+import { VagasCidadeIndicator } from '@/components/vagas-cidade-indicator'
 import { SearchFilter } from '@/components/search-filter'
 import { AnimalCard } from '@/components/animal-card'
 import { AnimalWithTutor, Stats } from '@/lib/types'
@@ -59,6 +60,8 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <StatsCards stats={stats} />
+
+      <VagasCidadeIndicator />
 
       <div className="flex rounded-lg bg-gray-100 p-1">
         <button
