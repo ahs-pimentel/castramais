@@ -25,7 +25,7 @@ fi
 
 # Configurações
 APP_DIR="/opt/castramais"
-DOMAIN="${1:-castramais.odois.com.br}"
+DOMAIN="${1:-castramaismg.org}"
 
 # Gerar senhas seguras (64 caracteres hexadecimais)
 DB_PASSWORD=$(openssl rand -hex 32)
