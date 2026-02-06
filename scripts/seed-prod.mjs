@@ -106,7 +106,7 @@ async function seed() {
     console.log('Tabelas criadas com sucesso!')
 
     // Verificar se admin existe
-    const result = await pool.query("SELECT id FROM users WHERE email = $1", [process.env.ADMIN_EMAIL || 'admin@castramais.com.br'])
+    const result = await pool.query("SELECT id FROM users WHERE email = $1", [process.env.ADMIN_EMAIL || 'admin@castramaismg.org'])
 
     if (result.rows.length > 0) {
       console.log('Admin já existe, pulando criação')
@@ -118,11 +118,11 @@ async function seed() {
       await pool.query(
         `INSERT INTO users (id, email, password, nome, "createdAt")
          VALUES (uuid_generate_v4(), $1, $2, $3, NOW())`,
-        [process.env.ADMIN_EMAIL || 'admin@castramais.com.br', hash, 'Administrador']
+        [process.env.ADMIN_EMAIL || 'admin@castramaismg.org', hash, 'Administrador']
       )
 
       console.log('Admin criado com sucesso!')
-      console.log('Email:', process.env.ADMIN_EMAIL || 'admin@castramais.com.br')
+      console.log('Email:', process.env.ADMIN_EMAIL || 'admin@castramaismg.org')
     }
   } catch (error) {
     console.error('Erro no seed:', error.message)

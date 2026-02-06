@@ -51,7 +51,7 @@ NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
 NEXTAUTH_URL=https://${DOMAIN}
 
 # Admin inicial (troque após primeiro login!)
-ADMIN_EMAIL=admin@castramais.com.br
+ADMIN_EMAIL=admin@castramaismg.org
 ADMIN_PASSWORD=${ADMIN_PASSWORD}
 EOF
 
@@ -83,7 +83,7 @@ docker exec castramais-db psql -U castramais -d castramais -c "
 INSERT INTO users (id, email, password, nome, \"createdAt\")
 VALUES (
   uuid_generate_v4(),
-  'admin@castramais.com.br',
+  'admin@castramaismg.org',
   '\$2a\$10\$$(openssl rand -hex 22)',
   'Administrador',
   NOW()
@@ -97,7 +97,7 @@ echo ""
 echo -e "${YELLOW}CREDENCIAIS (salve em local seguro):${NC}"
 echo ""
 echo -e "URL: https://${DOMAIN}"
-echo -e "Admin Email: admin@castramais.com.br"
+echo -e "Admin Email: admin@castramaismg.org"
 echo -e "Admin Senha: ${ADMIN_PASSWORD}"
 echo ""
 echo -e "${RED}IMPORTANTE: Troque a senha após o primeiro login!${NC}"

@@ -36,7 +36,7 @@ services:
       NEXTAUTH_SECRET: d28ae335f31f21d9f5eff6a210436314d5b61912fd5add3e3b88302dbd63f868
       NEXTAUTH_URL: https://castramaismg.org
       NODE_ENV: production
-      ADMIN_EMAIL: admin@castramais.com.br
+      ADMIN_EMAIL: admin@castramaismg.org
       ADMIN_PASSWORD: 2l2SjbeeFfEoB66G
       # Evolution API (WhatsApp)
       EVOLUTION_API_URL: https://evo.odois.com.br

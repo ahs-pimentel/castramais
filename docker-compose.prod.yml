@@ -30,7 +30,7 @@ services:
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       NEXTAUTH_URL: ${NEXTAUTH_URL}
       NODE_ENV: production
-      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@castramais.com.br}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@castramaismg.org}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       EVOLUTION_API_URL: ${EVOLUTION_API_URL:-https://evo.odois.com.br}
       EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
