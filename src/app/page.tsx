@@ -307,6 +307,27 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Parceiros e Apoio Institucional */}
+      <section className="py-12 bg-cream-light">
+        <div className="max-w-6xl mx-auto px-4">
+          <p className="text-center text-sm font-medium text-gray-500 uppercase tracking-wider mb-8">
+            Apoio Institucional
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-10 md:gap-16">
+            <img
+              src="/logos/ministerio-meio-ambiente.png"
+              alt="Ministério do Meio Ambiente e Mudança do Clima - Governo do Brasil"
+              className="h-14 md:h-20 w-auto object-contain"
+            />
+            <img
+              src="/logos/vida-animal-livre.png"
+              alt="Vida Animal Livre"
+              className="h-16 md:h-24 w-auto object-contain"
+            />
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="bg-secondary-hover py-8">
         <div className="max-w-6xl mx-auto px-4">
