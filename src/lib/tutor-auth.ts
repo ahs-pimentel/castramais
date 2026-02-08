@@ -1,29 +1,53 @@
 import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.TUTOR_JWT_SECRET || process.env.NEXTAUTH_SECRET || 'tutor-secret-key'
-
-// Armazenamento temporário de códigos (em produção usar Redis)
-const codigosTemporarios = new Map<string, { codigo: string; expira: number }>()
+import crypto from 'crypto'
+import { getTutorJwtSecret } from './jwt-secrets'
+import { pool } from './pool'
+import { OTP_CONFIG, JWT_EXPIRY } from './constants'
 
 export function gerarCodigo(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString()
+  const buffer = crypto.randomBytes(4)
+  const num = buffer.readUInt32BE(0) % 900000 + 100000
+  return num.toString()
 }
 
-export function salvarCodigo(cpf: string, codigo: string): void {
-  // Código expira em 5 minutos
-  const expira = Date.now() + 5 * 60 * 1000
-  codigosTemporarios.set(cpf, { codigo, expira })
+export async function salvarCodigo(cpf: string, codigo: string): Promise<void> {
+  const expira = new Date(Date.now() + OTP_CONFIG.EXPIRY_MS)
+  await pool.query(`
+    INSERT INTO otp_codes (cpf, codigo, tentativas, expira)
+    VALUES ($1, $2, 0, $3)
+    ON CONFLICT (cpf) DO UPDATE SET
+      codigo = $2, tentativas = 0, expira = $3, criado_em = NOW()
+  `, [cpf, codigo, expira])
 }
 
-export function verificarCodigo(cpf: string, codigo: string): boolean {
-  const dados = codigosTemporarios.get(cpf)
-  if (!dados) return false
-  if (Date.now() > dados.expira) {
-    codigosTemporarios.delete(cpf)
+export async function verificarCodigo(cpf: string, codigo: string): Promise<boolean> {
+  const result = await pool.query(
+    'SELECT codigo, tentativas, expira FROM otp_codes WHERE cpf = $1',
+    [cpf]
+  )
+  if (result.rows.length === 0) return false
+
+  const dados = result.rows[0]
+
+  if (new Date() > new Date(dados.expira)) {
+    await pool.query('DELETE FROM otp_codes WHERE cpf = $1', [cpf])
     return false
   }
-  if (dados.codigo !== codigo) return false
-  codigosTemporarios.delete(cpf)
+
+  if (dados.tentativas >= OTP_CONFIG.MAX_ATTEMPTS) {
+    await pool.query('DELETE FROM otp_codes WHERE cpf = $1', [cpf])
+    return false
+  }
+
+  if (dados.codigo !== codigo) {
+    await pool.query(
+      'UPDATE otp_codes SET tentativas = tentativas + 1 WHERE cpf = $1',
+      [cpf]
+    )
+    return false
+  }
+
+  await pool.query('DELETE FROM otp_codes WHERE cpf = $1', [cpf])
   return true
 }
 
@@ -34,12 +58,12 @@ export interface TutorTokenPayload {
 }
 
 export function gerarToken(payload: TutorTokenPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' })
+  return jwt.sign(payload, getTutorJwtSecret(), { expiresIn: JWT_EXPIRY.TUTOR })
 }
 
 export function verificarToken(token: string): TutorTokenPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as TutorTokenPayload
+    return jwt.verify(token, getTutorJwtSecret()) as TutorTokenPayload
   } catch {
     return null
   }

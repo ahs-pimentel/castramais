@@ -1,14 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { signOut } from 'next-auth/react'
-import { LogOut, PawPrint, Users, Building2, MessageSquare } from 'lucide-react'
+import { signOut, useSession } from 'next-auth/react'
+import { LogOut, PawPrint, Users, Building2, MessageSquare, Megaphone, UserCog } from 'lucide-react'
 import { Button } from './ui/button'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 export function Header() {
   const pathname = usePathname()
+  const { data: session } = useSession()
+  const role = session?.user?.role || 'admin'
   const [chatwootUrl, setChatwootUrl] = useState<string | null>(null)
 
   useEffect(() => {
@@ -27,6 +29,8 @@ export function Header() {
     { href: '/dashboard', label: 'Animais', icon: PawPrint },
     { href: '/dashboard/tutores', label: 'Tutores', icon: Users },
     { href: '/dashboard/entidades', label: 'Entidades', icon: Building2 },
+    { href: '/dashboard/campanhas', label: 'Campanhas', icon: Megaphone },
+    ...(role === 'admin' ? [{ href: '/dashboard/usuarios', label: 'Usuários', icon: UserCog }] : []),
   ]
 
   return (

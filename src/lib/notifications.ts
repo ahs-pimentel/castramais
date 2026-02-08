@@ -1,8 +1,6 @@
 // Serviço de notificações - WhatsApp (Evolution API) e Email
 
-const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL || 'https://evo.odois.com.br'
-const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY || ''
-const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || 'castramais'
+import { EVOLUTION_API_URL, EVOLUTION_API_KEY, EVOLUTION_INSTANCE } from './constants'
 
 const SMTP_HOST = process.env.SMTP_HOST || ''
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587')
@@ -90,7 +88,7 @@ export async function enviarEmail(
             <h1 style="color: #F97316; margin: 0;">Castra<span style="color: #333;">+</span></h1>
           </div>
           <div style="background: #f9f9f9; border-radius: 10px; padding: 20px;">
-            ${mensagem.replace(/\n/g, '<br>')}
+            ${mensagem.replace(/[&<>"']/g, (c: string) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#x27;'}[c] || c)).replace(/\n/g, '<br>')}
           </div>
           <div style="text-align: center; margin-top: 20px; color: #999; font-size: 12px;">
             Este é um email automático do sistema Castra+
@@ -402,6 +400,51 @@ Em caso de dúvidas, entre em contato pelo WhatsApp.
     const emailResult = await enviarEmail(
       email,
       `Agendamento cancelado: ${nomePet} - Castra+MG`,
+      mensagem.replace(/\*/g, '')
+    )
+    if (emailResult.success) {
+      return { success: true, metodo: 'email' }
+    }
+  }
+
+  return { success: false, error: 'Não foi possível enviar notificação' }
+}
+
+// Notificação: Cadastro feito pelo admin (orientar tutor a acessar /tutor)
+export async function notificarCadastroAdmin(
+  telefone: string,
+  email: string | null,
+  nomeTutor: string,
+  nomePet: string
+): Promise<NotificacaoResult> {
+  const mensagem = `*Castra+MG* 🐾
+
+Olá, *${nomeTutor}*!
+
+Informamos que seu pet *${nomePet}* foi cadastrado no programa *Castra+MG* de castração gratuita!
+
+📋 *Próximos passos:*
+Acesse o sistema para acompanhar o status do seu pet:
+
+👉 *castramaismg.org/tutor*
+
+Basta informar seu CPF e confirmar pelo código enviado por WhatsApp.
+
+Você receberá notificações sobre o agendamento pelo WhatsApp.
+
+Em caso de dúvidas, responda esta mensagem.
+
+🐾 Castra+MG - Castração é um gesto de amor!`
+
+  const result = await enviarWhatsApp(telefone, mensagem)
+  if (result.success) {
+    return { success: true, metodo: 'whatsapp' }
+  }
+
+  if (email) {
+    const emailResult = await enviarEmail(
+      email,
+      `Seu pet ${nomePet} foi cadastrado - Castra+MG`,
       mensagem.replace(/\*/g, '')
     )
     if (emailResult.success) {

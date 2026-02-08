@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/pool'
 import { verificarCodigo, gerarToken } from '@/lib/tutor-auth'
-import { cleanCPF } from '@/lib/utils'
+import { cleanCPF, validateCPF } from '@/lib/utils'
+import { checkRateLimit } from '@/lib/rate-limit'
+import { RATE_LIMITS } from '@/lib/constants'
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,8 +16,18 @@ export async function POST(request: NextRequest) {
 
     const cpfLimpo = cleanCPF(cpf)
 
+    if (!validateCPF(cpfLimpo)) {
+      return NextResponse.json({ error: 'CPF inválido' }, { status: 400 })
+    }
+
+    // Rate limiting
+    const limit = await checkRateLimit(`verify:cpf:${cpfLimpo}`, RATE_LIMITS.OTP_PER_CPF.max, RATE_LIMITS.OTP_PER_CPF.windowMs)
+    if (!limit.allowed) {
+      return NextResponse.json({ error: 'Muitas tentativas. Tente novamente em 15 minutos.' }, { status: 429 })
+    }
+
     // Verificar código
-    const codigoValido = verificarCodigo(cpfLimpo, codigo)
+    const codigoValido = await verificarCodigo(cpfLimpo, codigo)
     if (!codigoValido) {
       return NextResponse.json({ error: 'Código inválido ou expirado' }, { status: 401 })
     }

@@ -1,31 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { pool } from '@/lib/pool'
-import { CIDADES_CAMPANHA } from '@/lib/config/cities'
+import { requireRole } from '@/lib/permissions'
+import { notificarCadastroAdmin } from '@/lib/notifications'
+import { buscarAnimalPorRG, buscarTutorNotificacao } from '@/lib/repositories/animal-repository'
+import { verificarLimitesAnimais } from '@/lib/repositories/tutor-repository'
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-  }
+  const { error } = await requireRole('admin', 'assistente')
+  if (error) return error
 
   try {
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search') || ''
     const status = searchParams.get('status') || ''
-    const cidade = searchParams.get('cidade') || ''
+    const campanha = searchParams.get('campanha') || ''
 
-    // Paginação (opcional - mantém compatibilidade)
     const pageParam = searchParams.get('page')
     const limitParam = searchParams.get('limit')
     const usePagination = pageParam !== null || limitParam !== null
     const page = Math.max(1, Number(pageParam) || 1)
-    const limit = Math.min(Math.max(1, Number(limitParam) || 50), 100) // máximo 100
+    const limit = Math.min(Math.max(1, Number(limitParam) || 50), 100)
 
     let baseQuery = `
       FROM animais a
       LEFT JOIN tutores t ON a."tutorId" = t.id
+      LEFT JOIN campanhas c ON a."campanhaId" = c.id
       WHERE 1=1
     `
     const params: (string | number)[] = []
@@ -37,19 +36,10 @@ export async function GET(request: NextRequest) {
       paramIndex++
     }
 
-    if (cidade) {
-      // Filtrar por cidade usando as variações do nome
-      const cidadeConfig = CIDADES_CAMPANHA[cidade]
-      if (cidadeConfig) {
-        const variacoes = cidadeConfig.variacoes.flatMap(v => [
-          `${v}/${cidadeConfig.uf}`,
-          v
-        ])
-        const likeConditions = variacoes.map((_, i) => `LOWER(t.cidade) LIKE LOWER($${paramIndex + i})`).join(' OR ')
-        baseQuery += ` AND (${likeConditions})`
-        variacoes.forEach(v => params.push(`%${v}%`))
-        paramIndex += variacoes.length
-      }
+    if (campanha) {
+      baseQuery += ` AND a."campanhaId" = $${paramIndex}`
+      params.push(campanha)
+      paramIndex++
     }
 
     if (search) {
@@ -64,7 +54,6 @@ export async function GET(request: NextRequest) {
       paramIndex++
     }
 
-    // Query principal com SELECT
     let query = `
       SELECT
         a.*,
@@ -77,18 +66,21 @@ export async function GET(request: NextRequest) {
           'endereco', t.endereco,
           'cidade', t.cidade,
           'bairro', t.bairro
-        ) as tutor
+        ) as tutor,
+        CASE WHEN c.id IS NOT NULL THEN json_build_object(
+          'id', c.id,
+          'nome', c.nome,
+          'cidade', c.cidade
+        ) ELSE NULL END as campanha
       ${baseQuery}
       ORDER BY a."createdAt" DESC
     `
 
-    // Aplica paginação se solicitada
     if (usePagination) {
       const offset = (page - 1) * limit
       query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`
       params.push(limit, offset)
 
-      // Conta total para metadados
       const countResult = await pool.query(
         `SELECT COUNT(*)::int as total ${baseQuery}`,
         params.slice(0, paramIndex - 1)
@@ -109,7 +101,6 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Sem paginação (comportamento original)
     const result = await pool.query(query, params)
     return NextResponse.json(result.rows)
   } catch (error) {
@@ -119,26 +110,29 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-  }
+  const { error } = await requireRole('admin', 'assistente')
+  if (error) return error
 
   try {
     const body = await request.json()
-    const { tutorId, tutor: tutorData, registroSinpatinhas, ...animalData } = body
+    const { tutorId, tutor: tutorData, registroSinpatinhas, campanhaId, ...animalData } = body
 
     if (!registroSinpatinhas) {
       return NextResponse.json({ error: 'Número do RG Animal (SinPatinhas) é obrigatório' }, { status: 400 })
     }
 
-    // Verificar se registro já existe
-    const existingAnimal = await pool.query(
-      'SELECT id FROM animais WHERE "registroSinpatinhas" = $1',
-      [registroSinpatinhas]
-    )
-    if (existingAnimal.rows.length > 0) {
+    const existingAnimal = await buscarAnimalPorRG(registroSinpatinhas)
+    if (existingAnimal) {
       return NextResponse.json({ error: 'Este RG Animal já está cadastrado no sistema' }, { status: 409 })
+    }
+
+    // Verificar limite de animais por tutor
+    const checkTutorId = tutorId || (tutorData ? null : null)
+    if (checkTutorId) {
+      const limites = await verificarLimitesAnimais(checkTutorId, campanhaId)
+      if (!limites.ok) {
+        return NextResponse.json({ error: limites.erro }, { status: 400 })
+      }
     }
 
     let tutorIdFinal: string
@@ -164,8 +158,8 @@ export async function POST(request: NextRequest) {
     const animal = await pool.query(
       `INSERT INTO animais (
         nome, especie, raca, sexo, peso, "idadeAnos", "idadeMeses",
-        "registroSinpatinhas", status, "dataAgendamento", observacoes, "tutorId"
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        "registroSinpatinhas", status, "dataAgendamento", observacoes, "tutorId", "campanhaId"
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING *`,
       [
         animalData.nome,
@@ -179,9 +173,17 @@ export async function POST(request: NextRequest) {
         animalData.status || 'pendente',
         animalData.dataAgendamento || null,
         animalData.observacoes || null,
-        tutorIdFinal
+        tutorIdFinal,
+        campanhaId || null
       ]
     )
+
+    // Notificar tutor via WhatsApp/email (async, não bloqueia resposta)
+    const tutor = await buscarTutorNotificacao(tutorIdFinal)
+    if (tutor) {
+      notificarCadastroAdmin(tutor.telefone, tutor.email, tutor.nome, animalData.nome)
+        .catch(err => console.error('Erro ao notificar tutor (admin cadastro):', err))
+    }
 
     return NextResponse.json(animal.rows[0], { status: 201 })
   } catch (error) {

@@ -14,8 +14,14 @@ import {
   HelpCircle,
   ExternalLink
 } from 'lucide-react'
-import { validarSinpatinhas, getMensagemErroSinpatinhas } from '@/lib/validators'
-import { VagasStatus } from '@/components/vagas-status'
+import { validarSinpatinhas, getMensagemErroSinpatinhas } from '@/lib/sanitize'
+
+interface Campanha {
+  id: string
+  nome: string
+  cidade: string
+  uf: string
+}
 
 export default function NovoPetPage() {
   const router = useRouter()
@@ -25,6 +31,7 @@ export default function NovoPetPage() {
   const [posicaoFila, setPosicaoFila] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [campanhas, setCampanhas] = useState<Campanha[]>([])
 
   const [formData, setFormData] = useState({
     registroSinpatinhas: '',
@@ -36,12 +43,25 @@ export default function NovoPetPage() {
     idadeAnos: '',
     idadeMeses: '',
     observacoes: '',
+    campanhaId: '',
   })
 
   useEffect(() => {
     const token = localStorage.getItem('tutor_token')
     if (!token) {
       router.push('/tutor')
+    }
+
+    // Buscar campanhas
+    fetch('/api/campanhas')
+      .then(res => res.ok ? res.json() : [])
+      .then((data: Campanha[]) => setCampanhas(data))
+      .catch(() => setCampanhas([]))
+
+    // Recuperar campanhaId da sessao
+    const campanhaIdSalvo = sessionStorage.getItem('campanhaId')
+    if (campanhaIdSalvo) {
+      setFormData(prev => ({ ...prev, campanhaId: campanhaIdSalvo }))
     }
   }, [router])
 
@@ -57,7 +77,7 @@ export default function NovoPetPage() {
   const validate = () => {
     const newErrors: Record<string, string> = {}
 
-    // Validação do RG Animal (SinPatinhas)
+    // Validacao do RG Animal (SinPatinhas)
     if (!formData.registroSinpatinhas.trim()) {
       newErrors.registroSinpatinhas = 'RG Animal é obrigatório'
     } else if (!validarSinpatinhas(formData.registroSinpatinhas)) {
@@ -70,6 +90,9 @@ export default function NovoPetPage() {
     }
     if (!formData.raca.trim()) {
       newErrors.raca = 'Raça é obrigatória'
+    }
+    if (!formData.campanhaId) {
+      newErrors.campanhaId = 'Selecione uma campanha'
     }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -95,6 +118,7 @@ export default function NovoPetPage() {
           peso: formData.peso || undefined,
           idadeAnos: formData.idadeAnos || undefined,
           idadeMeses: formData.idadeMeses || undefined,
+          campanhaId: formData.campanhaId || undefined,
         }),
       })
 
@@ -135,7 +159,7 @@ export default function NovoPetPage() {
                   {posicaoFila && <span> (Posição: {posicaoFila}º)</span>}
                 </p>
                 <p className="text-amber-600 text-xs mt-2">
-                  As vagas na sua cidade estão esgotadas. Você será notificado quando houver novas vagas.
+                  As vagas na sua campanha estão esgotadas. Você será notificado quando houver novas vagas.
                 </p>
               </div>
               <p className="text-gray-500">Redirecionando para seus pets...</p>
@@ -178,8 +202,44 @@ export default function NovoPetPage() {
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="px-6 mt-6 space-y-6">
-        {/* Status de Vagas */}
-        <VagasStatus />
+        {/* Campanha */}
+        <div className="bg-white rounded-2xl shadow-sm p-5 space-y-4">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+              <PawPrint className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-gray-900">Campanha</h2>
+              <p className="text-xs text-gray-500">Selecione a campanha de castração</p>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Campanha *
+            </label>
+            <select
+              name="campanhaId"
+              value={formData.campanhaId}
+              onChange={handleChange}
+              className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition-colors bg-white ${
+                errors.campanhaId
+                  ? 'border-red-300 focus:border-red-500'
+                  : 'border-gray-200 focus:border-primary'
+              }`}
+            >
+              <option value="">Selecione a campanha</option>
+              {campanhas.map(campanha => (
+                <option key={campanha.id} value={campanha.id}>
+                  {campanha.nome} — {campanha.cidade}
+                </option>
+              ))}
+            </select>
+            {errors.campanhaId && (
+              <p className="text-red-500 text-sm mt-1">{errors.campanhaId}</p>
+            )}
+          </div>
+        </div>
 
         {/* RG Animal */}
         <div className="bg-white rounded-2xl shadow-sm p-5 space-y-4">

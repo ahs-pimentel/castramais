@@ -4,13 +4,20 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { PawPrint, ArrowRight, ArrowLeft, Loader2, User, Phone, Mail, MapPin } from 'lucide-react'
 import { formatCPF, validateCPF, formatPhone } from '@/lib/utils'
-import { getCidadesCampanhaLista } from '@/lib/config/cities'
+
+interface Campanha {
+  id: string
+  nome: string
+  cidade: string
+  uf: string
+}
 
 export default function TutorCadastroPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [campanhas, setCampanhas] = useState<Campanha[]>([])
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -23,16 +30,23 @@ export default function TutorCadastroPage() {
     bairro: '',
     cidade: '',
     uf: '',
+    campanhaId: '',
     aceitaTermos: false,
   })
 
   useEffect(() => {
-    // Recuperar CPF da sessão se veio do login
+    // Recuperar CPF da sessao se veio do login
     const cpfSalvo = sessionStorage.getItem('cadastro_cpf')
     if (cpfSalvo) {
       setFormData(prev => ({ ...prev, cpf: cpfSalvo }))
       sessionStorage.removeItem('cadastro_cpf')
     }
+
+    // Buscar campanhas ativas
+    fetch('/api/campanhas')
+      .then(res => res.ok ? res.json() : [])
+      .then((data: Campanha[]) => setCampanhas(data))
+      .catch(() => setCampanhas([]))
   }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -43,13 +57,6 @@ export default function TutorCadastroPage() {
       formattedValue = value.replace(/\D/g, '').slice(0, 11)
     } else if (name === 'telefone') {
       formattedValue = value.replace(/\D/g, '').slice(0, 11)
-    }
-
-    // Se selecionou uma cidade, auto-preenche UF com MG
-    if (name === 'cidade' && formattedValue) {
-      setFormData(prev => ({ ...prev, [name]: formattedValue, uf: 'MG' }))
-      setError('')
-      return
     }
 
     setFormData(prev => ({ ...prev, [name]: formattedValue }))
@@ -73,6 +80,10 @@ export default function TutorCadastroPage() {
   }
 
   const validateStep2 = () => {
+    if (!formData.campanhaId) {
+      setError('Selecione uma campanha')
+      return false
+    }
     if (!formData.cidade.trim()) {
       setError('Cidade é obrigatória')
       return false
@@ -118,12 +129,17 @@ export default function TutorCadastroPage() {
     setLoading(true)
     setError('')
 
-    // Montar endereço completo
+    // Montar endereco completo
     const enderecoCompleto = formData.complemento
       ? `${formData.endereco}, ${formData.numero} - ${formData.complemento}`
       : `${formData.endereco}, ${formData.numero}`
 
     try {
+      // Salvar campanhaId na sessao para uso ao cadastrar pet
+      if (formData.campanhaId) {
+        sessionStorage.setItem('campanhaId', formData.campanhaId)
+      }
+
       const res = await fetch('/api/tutor/cadastrar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -134,14 +150,14 @@ export default function TutorCadastroPage() {
           email: formData.email,
           endereco: enderecoCompleto,
           bairro: formData.bairro,
-          cidade: `${formData.cidade}/${formData.uf}`,
+          cidade: formData.cidade,
         }),
       })
 
       const data = await res.json()
 
       if (res.ok) {
-        // Salvar dados e ir para verificação
+        // Salvar dados e ir para verificacao
         sessionStorage.setItem('tutor_cpf', formData.cpf)
         sessionStorage.setItem('tutor_telefone', data.telefone || '')
         sessionStorage.setItem('tutor_metodo', data.metodoEnvio || 'whatsapp')
@@ -276,32 +292,59 @@ export default function TutorCadastroPage() {
                     <MapPin className="w-5 h-5 text-green-600" />
                   </div>
                   <div>
-                    <h2 className="font-semibold text-gray-900">Endereço</h2>
-                    <p className="text-xs text-gray-500">Selecione sua cidade e preencha o endereço</p>
+                    <h2 className="font-semibold text-gray-900">Endereço e Campanha</h2>
+                    <p className="text-xs text-gray-500">Selecione a campanha e preencha o endereço</p>
                   </div>
                 </div>
 
-                {/* Cidade - Primeiro campo */}
+                {/* Campanha */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Campanha *
+                  </label>
+                  <select
+                    name="campanhaId"
+                    value={formData.campanhaId}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 focus:outline-none transition-colors bg-white"
+                  >
+                    <option value="">Selecione a campanha</option>
+                    {campanhas.map(campanha => (
+                      <option key={campanha.id} value={campanha.id}>
+                        {campanha.nome} — {campanha.cidade}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Cidade - Campo de texto livre */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Cidade *
                   </label>
-                  <select
+                  <input
+                    type="text"
                     name="cidade"
                     value={formData.cidade}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 focus:outline-none transition-colors bg-white"
-                  >
-                    <option value="">Selecione sua cidade</option>
-                    {getCidadesCampanhaLista().map(cidade => (
-                      <option key={cidade.key} value={cidade.nome}>
-                        {cidade.nome} - {cidade.uf}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-amber-600 mt-1">
-                    A campanha está disponível apenas para as cidades listadas
-                  </p>
+                    placeholder="Digite sua cidade"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 focus:outline-none transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    UF
+                  </label>
+                  <input
+                    type="text"
+                    name="uf"
+                    value={formData.uf}
+                    onChange={handleChange}
+                    placeholder="MG"
+                    maxLength={2}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 focus:outline-none transition-colors uppercase"
+                  />
                 </div>
 
                 <div>

@@ -4,6 +4,8 @@ import { gerarCodigo, salvarCodigo } from '@/lib/tutor-auth'
 import { enviarCodigoVerificacao } from '@/lib/notifications'
 import { cleanCPF, validateCPF } from '@/lib/utils'
 import { v4 as uuidv4 } from 'uuid'
+import { checkRateLimit } from '@/lib/rate-limit'
+import { RATE_LIMITS } from '@/lib/constants'
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,6 +24,13 @@ export async function POST(request: NextRequest) {
 
     if (!validateCPF(cpfLimpo)) {
       return NextResponse.json({ error: 'CPF inválido' }, { status: 400 })
+    }
+
+    // Rate limiting
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+    const limit = await checkRateLimit(`cadastro:ip:${ip}`, RATE_LIMITS.CADASTRO_PER_IP.max, RATE_LIMITS.CADASTRO_PER_IP.windowMs)
+    if (!limit.allowed) {
+      return NextResponse.json({ error: 'Muitas tentativas. Tente novamente em 1 hora.' }, { status: 429 })
     }
 
     // Verificar se CPF já existe
@@ -59,7 +68,7 @@ export async function POST(request: NextRequest) {
 
     // Gerar e enviar código de verificação
     const codigo = gerarCodigo()
-    salvarCodigo(cpfLimpo, codigo)
+    await salvarCodigo(cpfLimpo, codigo)
 
     // Enviar código por WhatsApp (ou email como fallback)
     const resultado = await enviarCodigoVerificacao(
@@ -73,7 +82,9 @@ export async function POST(request: NextRequest) {
     const telefoneMascarado = `${telefoneLimpo.slice(0, 2)}*****${telefoneLimpo.slice(-4)}`
 
     // Log para debug
-    console.log(`[CADASTRO TUTOR] CPF: ${cpfLimpo} | Código: ${codigo} | Método: ${resultado.metodo}`)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[CADASTRO TUTOR] CPF: ${cpfLimpo} | Código: ${codigo} | Método: ${resultado.metodo}`)
+    }
 
     return NextResponse.json({
       message: 'Cadastro realizado com sucesso',

@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/pool'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'entidade-secret-key'
+import { getEntidadeJwtSecret } from '@/lib/jwt-secrets'
+import { checkRateLimit } from '@/lib/rate-limit'
+import { RATE_LIMITS, JWT_EXPIRY } from '@/lib/constants'
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,6 +16,12 @@ export async function POST(request: NextRequest) {
         { error: 'Email e senha são obrigatórios' },
         { status: 400 }
       )
+    }
+
+    // Rate limiting
+    const limit = await checkRateLimit(`login:entidade:${email}`, RATE_LIMITS.LOGIN_PER_EMAIL.max, RATE_LIMITS.LOGIN_PER_EMAIL.windowMs)
+    if (!limit.allowed) {
+      return NextResponse.json({ error: 'Muitas tentativas. Tente novamente em 15 minutos.' }, { status: 429 })
     }
 
     // Buscar entidade
@@ -59,8 +66,8 @@ export async function POST(request: NextRequest) {
         cidade: entidade.cidade,
         bairro: entidade.bairro,
       },
-      JWT_SECRET,
-      { expiresIn: '7d' }
+      getEntidadeJwtSecret(),
+      { expiresIn: JWT_EXPIRY.ENTIDADE }
     )
 
     return NextResponse.json({

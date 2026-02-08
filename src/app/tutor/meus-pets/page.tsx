@@ -18,17 +18,7 @@ import {
   Loader2,
   Plus
 } from 'lucide-react'
-
-interface Animal {
-  id: string
-  nome: string
-  especie: 'cachorro' | 'gato'
-  raca: string
-  registroSinpatinhas: string
-  status: 'pendente' | 'agendado' | 'realizado' | 'cancelado'
-  dataAgendamento: string | null
-  dataRealizacao: string | null
-}
+import { Animal } from '@/lib/types'
 
 const statusConfig = {
   pendente: {
@@ -58,6 +48,13 @@ const statusConfig = {
     bg: 'bg-red-100',
     text: 'text-red-700',
     border: 'border-red-200',
+  },
+  lista_espera: {
+    label: 'Lista de Espera',
+    icon: Clock,
+    bg: 'bg-orange-100',
+    text: 'text-orange-700',
+    border: 'border-orange-200',
   },
 }
 

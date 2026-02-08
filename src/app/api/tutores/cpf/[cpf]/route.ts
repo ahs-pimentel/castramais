@@ -2,13 +2,24 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { pool } from '@/lib/pool'
+import jwt from 'jsonwebtoken'
+import { getEntidadeJwtSecret } from '@/lib/jwt-secrets'
 
 type RouteParams = { params: Promise<{ cpf: string }> }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  // Accept admin session OR entidade JWT
   const session = await getServerSession(authOptions)
   if (!session) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    const authHeader = request.headers.get('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+    }
+    try {
+      jwt.verify(authHeader.substring(7), getEntidadeJwtSecret())
+    } catch {
+      return NextResponse.json({ error: 'Token inválido' }, { status: 401 })
+    }
   }
 
   try {

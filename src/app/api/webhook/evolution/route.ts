@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { extrairTextoMensagem, extrairTelefone } from '@/lib/evolution'
+import { verificarWebhookEvolution } from '@/lib/webhook-auth'
 
 // Webhook que recebe mensagens do Evolution API (WhatsApp) e encaminha para Chatwoot
 
@@ -34,6 +35,10 @@ interface EvolutionPayload {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!verificarWebhookEvolution(request)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const payload: EvolutionPayload = await request.json()
 
     console.log('[Webhook Evolution] Recebido:', payload.event)

@@ -25,6 +25,7 @@ async function seed() {
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
         nome VARCHAR(255) NOT NULL,
+        role VARCHAR(20) DEFAULT 'admin',
         "createdAt" TIMESTAMP DEFAULT NOW()
       )
     `)
@@ -86,7 +87,56 @@ async function seed() {
       )
     `)
 
-    // Adicionar colunas de agendamento se não existirem (para bancos existentes)
+    // Tabela campanhas
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS campanhas (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        nome VARCHAR(255) NOT NULL,
+        cidade VARCHAR(100) NOT NULL,
+        uf VARCHAR(2) DEFAULT 'MG',
+        "dataInicio" DATE,
+        "dataFim" DATE,
+        "dataDescricao" VARCHAR(255),
+        limite INTEGER DEFAULT 200,
+        ativa BOOLEAN DEFAULT true,
+        "createdAt" TIMESTAMP DEFAULT NOW()
+      )
+    `)
+
+    // Tabela campanhas_entidades (vínculo campanha <-> entidade)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS campanhas_entidades (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        "campanhaId" UUID REFERENCES campanhas(id) ON DELETE CASCADE,
+        "entidadeId" UUID REFERENCES entidades(id) ON DELETE CASCADE,
+        UNIQUE("campanhaId", "entidadeId")
+      )
+    `)
+
+    // Tabela rate_limits (rate limiting baseado no banco)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS rate_limits (
+        key VARCHAR(255) PRIMARY KEY,
+        count INTEGER NOT NULL DEFAULT 1,
+        window_start TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `)
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_rate_limits_window ON rate_limits (window_start)
+    `)
+
+    // Tabela otp_codes (códigos OTP persistentes)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS otp_codes (
+        cpf VARCHAR(11) PRIMARY KEY,
+        codigo VARCHAR(6) NOT NULL,
+        tentativas INTEGER NOT NULL DEFAULT 0,
+        expira TIMESTAMP NOT NULL,
+        criado_em TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `)
+
+    // Migrações para bancos existentes
     await pool.query(`
       DO $$
       BEGIN
@@ -99,11 +149,54 @@ async function seed() {
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'animais' AND column_name = 'enderecoAgendamento') THEN
           ALTER TABLE animais ADD COLUMN "enderecoAgendamento" VARCHAR(255);
         END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'animais' AND column_name = 'campanhaId') THEN
+          ALTER TABLE animais ADD COLUMN "campanhaId" UUID REFERENCES campanhas(id);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'role') THEN
+          ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'admin';
+        END IF;
       END
       $$;
     `)
 
     console.log('Tabelas criadas com sucesso!')
+
+    // Seed campanhas iniciais (se não existirem)
+    const campanhasExistentes = await pool.query('SELECT COUNT(*)::int as total FROM campanhas')
+    if (campanhasExistentes.rows[0].total === 0) {
+      console.log('Criando campanhas iniciais...')
+      const campanhasIniciais = [
+        { nome: 'Entre Rios de Minas - Fev/2026', cidade: 'Entre Rios de Minas', dataInicio: '2026-02-20', dataFim: '2026-02-21', dataDescricao: '20 e 21 de Fevereiro' },
+        { nome: 'Caranaíba - Fev/2026', cidade: 'Caranaíba', dataInicio: '2026-02-23', dataFim: '2026-02-24', dataDescricao: '23 e 24 de Fevereiro' },
+        { nome: 'Carandaí - Fev/2026', cidade: 'Carandaí', dataInicio: '2026-02-25', dataFim: '2026-02-26', dataDescricao: '25 e 26 de Fevereiro' },
+        { nome: 'Barbacena - Fev/Mar 2026', cidade: 'Barbacena', dataInicio: '2026-02-28', dataFim: '2026-03-02', dataDescricao: '28 de Fevereiro a 02 de Março' },
+      ]
+      for (const c of campanhasIniciais) {
+        await pool.query(
+          `INSERT INTO campanhas (nome, cidade, uf, "dataInicio", "dataFim", "dataDescricao", limite, ativa)
+           VALUES ($1, $2, 'MG', $3, $4, $5, 200, true)`,
+          [c.nome, c.cidade, c.dataInicio, c.dataFim, c.dataDescricao]
+        )
+      }
+      console.log('Campanhas iniciais criadas!')
+
+      // Backfill: vincular animais existentes às campanhas pela cidade do tutor
+      console.log('Vinculando animais existentes às campanhas...')
+      const campanhas = await pool.query('SELECT id, cidade FROM campanhas')
+      for (const camp of campanhas.rows) {
+        await pool.query(
+          `UPDATE animais SET "campanhaId" = $1
+           WHERE "campanhaId" IS NULL AND "tutorId" IN (
+             SELECT id FROM tutores WHERE LOWER(cidade) LIKE $2
+           )`,
+          [camp.id, `%${camp.cidade.toLowerCase()}%`]
+        )
+      }
+
+      // Limpar sufixo /MG das cidades dos tutores
+      await pool.query(`UPDATE tutores SET cidade = REPLACE(cidade, '/MG', '') WHERE cidade LIKE '%/MG'`)
+      console.log('Migração de dados concluída!')
+    }
 
     // Verificar se admin existe
     const result = await pool.query("SELECT id FROM users WHERE email = $1", [process.env.ADMIN_EMAIL || 'admin@castramaismg.org'])

@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { pool } from '@/lib/pool'
+import { requireRole } from '@/lib/permissions'
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-  }
+  const { error } = await requireRole('admin', 'assistente')
+  if (error) return error
 
   try {
     const result = await pool.query(`

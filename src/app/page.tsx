@@ -1,16 +1,35 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Heart, MapPin, Phone, Calendar, Dog, Cat, AlertTriangle, CheckCircle, Clock, Users } from 'lucide-react'
+import { Heart, MapPin, Phone, Calendar, Dog, Cat, AlertTriangle, CheckCircle, Clock, Users, Loader2 } from 'lucide-react'
 
-const campanhas = [
-  { cidade: 'Entre Rios de Minas', data: '20 e 21 de Fevereiro' },
-  { cidade: 'Caranaíba', data: '23 e 24 de Fevereiro' },
-  { cidade: 'Carandaí', data: '25 e 26 de Fevereiro' },
-  { cidade: 'Barbacena', data: '28 de Fevereiro a 02 de Março' },
-]
+interface Campanha {
+  id: string
+  nome: string
+  cidade: string
+  uf: string
+  dataDescricao: string | null
+  ativa: boolean
+}
 
 export default function LandingPage() {
+  const [campanhas, setCampanhas] = useState<Campanha[]>([])
+  const [loadingCampanhas, setLoadingCampanhas] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/campanhas')
+      .then(res => res.ok ? res.json() : [])
+      .then((data: Campanha[]) => {
+        setCampanhas(data)
+        setLoadingCampanhas(false)
+      })
+      .catch(() => {
+        setCampanhas([])
+        setLoadingCampanhas(false)
+      })
+  }, [])
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -89,24 +108,37 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {campanhas.map((campanha) => (
-              <div
-                key={campanha.cidade}
-                className="bg-cream-light border-2 border-cream-dark rounded-2xl p-6 hover:border-primary transition-colors"
-              >
-                <div className="flex items-center gap-2 text-primary mb-3">
-                  <MapPin className="w-5 h-5" />
-                  <span className="font-semibold">MG</span>
+          {loadingCampanhas ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            </div>
+          ) : campanhas.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">Nenhuma campanha ativa no momento. Fique atento para novas datas!</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {campanhas.map((campanha) => (
+                <div
+                  key={campanha.id}
+                  className="bg-cream-light border-2 border-cream-dark rounded-2xl p-6 hover:border-primary transition-colors"
+                >
+                  <div className="flex items-center gap-2 text-primary mb-3">
+                    <MapPin className="w-5 h-5" />
+                    <span className="font-semibold">{campanha.uf || 'MG'}</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-secondary mb-2">{campanha.cidade}</h3>
+                  {campanha.dataDescricao && (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Calendar className="w-4 h-4" />
+                      <span>{campanha.dataDescricao}</span>
+                    </div>
+                  )}
+                  <p className="text-sm text-gray-500 mt-2">{campanha.nome}</p>
                 </div>
-                <h3 className="text-xl font-bold text-secondary mb-2">{campanha.cidade}</h3>
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Calendar className="w-4 h-4" />
-                  <span>{campanha.data}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           <div className="text-center mt-8">
             <a

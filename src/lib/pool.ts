@@ -5,7 +5,7 @@ const { Pool } = pg
 
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: false,
+  ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
   // Otimizações de performance
   max: 50,                      // Máximo de conexões no pool
   min: 10,                      // Mínimo de conexões mantidas

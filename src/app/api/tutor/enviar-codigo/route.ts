@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/pool'
 import { gerarCodigo, salvarCodigo } from '@/lib/tutor-auth'
 import { enviarCodigoVerificacao } from '@/lib/notifications'
-import { cleanCPF } from '@/lib/utils'
+import { cleanCPF, validateCPF } from '@/lib/utils'
+import { checkRateLimit } from '@/lib/rate-limit'
+import { RATE_LIMITS } from '@/lib/constants'
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,6 +17,21 @@ export async function POST(request: NextRequest) {
 
     const cpfLimpo = cleanCPF(cpf)
 
+    if (!validateCPF(cpfLimpo)) {
+      return NextResponse.json({ error: 'CPF inválido' }, { status: 400 })
+    }
+
+    // Rate limiting
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+    const cpfLimit = await checkRateLimit(`otp:cpf:${cpfLimpo}`, RATE_LIMITS.OTP_PER_CPF.max, RATE_LIMITS.OTP_PER_CPF.windowMs)
+    if (!cpfLimit.allowed) {
+      return NextResponse.json({ error: 'Muitas tentativas. Tente novamente em 15 minutos.' }, { status: 429 })
+    }
+    const ipLimit = await checkRateLimit(`otp:ip:${ip}`, RATE_LIMITS.OTP_PER_IP.max, RATE_LIMITS.OTP_PER_IP.windowMs)
+    if (!ipLimit.allowed) {
+      return NextResponse.json({ error: 'Muitas tentativas. Tente novamente em 15 minutos.' }, { status: 429 })
+    }
+
     // Buscar tutor por CPF usando raw SQL
     const result = await pool.query(
       'SELECT id, nome, cpf, telefone, email FROM tutores WHERE cpf = $1',
@@ -24,19 +41,17 @@ export async function POST(request: NextRequest) {
     const tutor = result.rows[0]
 
     if (!tutor) {
-      // Retornar indicação de que precisa cadastrar
-      return NextResponse.json(
-        {
-          cadastroNecessario: true,
-          message: 'CPF não encontrado. Realize seu cadastro para continuar.'
-        },
-        { status: 404 }
-      )
+      return NextResponse.json({
+        cadastroNecessario: true,
+        message: 'Código enviado',
+        codigoEnviado: true,
+        metodoEnvio: 'whatsapp',
+      })
     }
 
     // Gerar e salvar código
     const codigo = gerarCodigo()
-    salvarCodigo(cpfLimpo, codigo)
+    await salvarCodigo(cpfLimpo, codigo)
 
     // Enviar código por WhatsApp (ou email como fallback)
     const resultado = await enviarCodigoVerificacao(
@@ -46,7 +61,9 @@ export async function POST(request: NextRequest) {
       preferencia || 'whatsapp'
     )
 
-    console.log(`[CÓDIGO TUTOR] CPF: ${cpfLimpo} | Código: ${codigo} | Método: ${resultado.metodo}`)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[CÓDIGO TUTOR] CPF: ${cpfLimpo} | Código: ${codigo} | Método: ${resultado.metodo}`)
+    }
 
     // Mascarar telefone e email para retorno
     const telefoneMascarado = tutor.telefone

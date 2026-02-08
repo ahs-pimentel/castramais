@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/pool'
 import { extrairToken, verificarToken } from '@/lib/tutor-auth'
 import { notificarCadastroPet, notificarListaEspera } from '@/lib/notifications'
-import { validarSinpatinhas, getMensagemErroSinpatinhas } from '@/lib/validators'
+import { validarSinpatinhas, getMensagemErroSinpatinhas } from '@/lib/sanitize'
 import { verificarDisponibilidadeVaga } from '@/lib/services/vagas'
 import { v4 as uuidv4 } from 'uuid'
+import { buscarAnimalPorRG, buscarTutorNotificacao } from '@/lib/repositories/animal-repository'
+import { verificarLimitesAnimais } from '@/lib/repositories/tutor-repository'
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,6 +33,7 @@ export async function POST(request: NextRequest) {
       idadeMeses,
       registroSinpatinhas,
       observacoes,
+      campanhaId,
     } = body
 
     // Validações
@@ -57,31 +60,33 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar se RG já existe
-    const existeResult = await pool.query(
-      'SELECT id FROM animais WHERE "registroSinpatinhas" = $1',
-      [registroSinpatinhas]
-    )
-    if (existeResult.rows.length > 0) {
+    const existeAnimal = await buscarAnimalPorRG(registroSinpatinhas)
+    if (existeAnimal) {
       return NextResponse.json(
         { error: 'Este RG Animal já está cadastrado no sistema' },
         { status: 409 }
       )
     }
 
+    // Verificar limite de animais por tutor
+    const limites = await verificarLimitesAnimais(payload.tutorId, campanhaId)
+    if (!limites.ok) {
+      return NextResponse.json({ error: limites.erro }, { status: 400 })
+    }
+
     // Buscar dados do tutor para notificação e verificação de vagas
-    const tutorResult = await pool.query(
-      'SELECT nome, telefone, email, cidade FROM tutores WHERE id = $1',
-      [payload.tutorId]
-    )
-    const tutor = tutorResult.rows[0]
+    const tutor = await buscarTutorNotificacao(payload.tutorId)
 
-    // Verificar disponibilidade de vagas na cidade do tutor
-    const { disponivel, vagasInfo, cidadeValida } = await verificarDisponibilidadeVaga(tutor?.cidade || '')
-
-    // Determinar status baseado na disponibilidade de vagas
+    // Verificar disponibilidade de vagas na campanha selecionada
     let statusFinal = 'pendente'
-    if (cidadeValida && !disponivel) {
-      statusFinal = 'lista_espera'
+    let vagasInfo = null as Awaited<ReturnType<typeof verificarDisponibilidadeVaga>>['vagasInfo']
+
+    if (campanhaId) {
+      const resultado = await verificarDisponibilidadeVaga(campanhaId)
+      vagasInfo = resultado.vagasInfo
+      if (vagasInfo && !resultado.disponivel) {
+        statusFinal = 'lista_espera'
+      }
     }
 
     // Criar animal vinculado ao tutor logado
@@ -89,8 +94,8 @@ export async function POST(request: NextRequest) {
     const result = await pool.query(
       `INSERT INTO animais (
         id, nome, especie, raca, sexo, peso, "idadeAnos", "idadeMeses",
-        "registroSinpatinhas", observacoes, "tutorId", status, "createdAt", "updatedAt"
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+        "registroSinpatinhas", observacoes, "tutorId", "campanhaId", status, "createdAt", "updatedAt"
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
       RETURNING *`,
       [
         animalId,
@@ -104,6 +109,7 @@ export async function POST(request: NextRequest) {
         registroSinpatinhas.trim(),
         observacoes?.trim() || null,
         payload.tutorId,
+        campanhaId || null,
         statusFinal,
       ]
     )

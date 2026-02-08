@@ -6,22 +6,12 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { gerarPDFTutores } from '@/lib/pdf-generator'
+import { Tutor } from '@/lib/types'
 
-interface Tutor {
-  id: string
-  nome: string
-  cpf: string
-  telefone: string
-  email: string | null
-  endereco: string
-  cidade: string
-  bairro: string
-  createdAt: string
-  totalAnimais: number
-}
+type TutorComAnimais = Tutor & { totalAnimais: number }
 
 export default function TutoresPage() {
-  const [tutores, setTutores] = useState<Tutor[]>([])
+  const [tutores, setTutores] = useState<TutorComAnimais[]>([])
   const [loading, setLoading] = useState(true)
   const [busca, setBusca] = useState('')
 

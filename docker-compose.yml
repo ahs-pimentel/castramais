@@ -4,9 +4,9 @@ services:
     container_name: castramais-db
     restart: always
     environment:
-      POSTGRES_USER: castramais
-      POSTGRES_PASSWORD: c9dd730d4262ee476d021e72d81597b5200c8e52eb5e721940f9fb246fe641b1
-      POSTGRES_DB: castramais
+      POSTGRES_USER: ${POSTGRES_USER:-castramais}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-castramais}
     volumes:
       - castramais_db_data:/var/lib/postgresql/data
     healthcheck:
@@ -32,27 +32,24 @@ services:
       retries: 3
       start_period: 40s
     environment:
-      DATABASE_URL: postgresql://castramais:c9dd730d4262ee476d021e72d81597b5200c8e52eb5e721940f9fb246fe641b1@db:5432/castramais
-      NEXTAUTH_SECRET: d28ae335f31f21d9f5eff6a210436314d5b61912fd5add3e3b88302dbd63f868
-      NEXTAUTH_URL: https://castramaismg.org
+      DATABASE_URL: postgresql://${POSTGRES_USER:-castramais}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-castramais}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://castramaismg.org}
       NODE_ENV: production
-      ADMIN_EMAIL: admin@castramaismg.org
-      ADMIN_PASSWORD: 2l2SjbeeFfEoB66G
-      # Evolution API (WhatsApp)
-      EVOLUTION_API_URL: https://evo.odois.com.br
-      EVOLUTION_API_KEY: a87ad2de419f678eccfdd25962db593cb6cbb7523a44dd57fbc9bfcbd938d1b1
-      EVOLUTION_INSTANCE: castramais
-      # SMTP (Email)
-      SMTP_HOST: smtp-pulse.com
-      SMTP_PORT: 587
-      SMTP_USER: ahspimentel@gmail.com
-      SMTP_PASS: KrPtFbogt3N
-      SMTP_FROM: ahspimentel@gmail.com
-      # Chatwoot (usando IP do host para comunicação interna)
-      CHATWOOT_URL: http://172.17.0.1:3001
-      CHATWOOT_ACCOUNT_ID: 1
-      CHATWOOT_INBOX_ID: 1
-      CHATWOOT_API_ACCESS_TOKEN: 6jUye78fxFqy2G5CrCsTvrEj
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@castramaismg.org}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      EVOLUTION_API_URL: ${EVOLUTION_API_URL}
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
+      EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE:-castramais}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: ${SMTP_FROM}
+      CHATWOOT_URL: ${CHATWOOT_URL}
+      CHATWOOT_ACCOUNT_ID: ${CHATWOOT_ACCOUNT_ID:-1}
+      CHATWOOT_INBOX_ID: ${CHATWOOT_INBOX_ID:-1}
+      CHATWOOT_API_ACCESS_TOKEN: ${CHATWOOT_API_ACCESS_TOKEN}
     depends_on:
       db:
         condition: service_healthy

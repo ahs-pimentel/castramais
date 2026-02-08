@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { pool } from '@/lib/pool'
+import { requireRole } from '@/lib/permissions'
 import {
   notificarAgendamento,
   notificarCastracaoRealizada,
@@ -11,10 +10,8 @@ import {
 type RouteParams = { params: Promise<{ id: string }> }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
-  const session = await getServerSession(authOptions)
-  if (!session) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-  }
+  const { error } = await requireRole('admin', 'assistente')
+  if (error) return error
 
   try {
     const { id } = await params
@@ -30,9 +27,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           'endereco', t.endereco,
           'cidade', t.cidade,
           'bairro', t.bairro
-        ) as tutor
+        ) as tutor,
+        CASE WHEN c.id IS NOT NULL THEN json_build_object(
+          'id', c.id,
+          'nome', c.nome,
+          'cidade', c.cidade
+        ) ELSE NULL END as campanha
       FROM animais a
       LEFT JOIN tutores t ON a."tutorId" = t.id
+      LEFT JOIN campanhas c ON a."campanhaId" = c.id
       WHERE a.id = $1`,
       [id]
     )
@@ -49,10 +52,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
-  const session = await getServerSession(authOptions)
-  if (!session) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-  }
+  const { error } = await requireRole('admin', 'assistente')
+  if (error) return error
 
   try {
     const { id } = await params
@@ -75,11 +76,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const values = []
     let paramIndex = 1
 
-    const allowedFields = ['nome', 'especie', 'raca', 'sexo', 'peso', 'idadeAnos', 'idadeMeses', 'registroSinpatinhas', 'status', 'dataAgendamento', 'dataRealizacao', 'observacoes', 'localAgendamento', 'enderecoAgendamento', 'horarioAgendamento']
+    const allowedFields = ['nome', 'especie', 'raca', 'sexo', 'peso', 'idadeAnos', 'idadeMeses', 'registroSinpatinhas', 'status', 'dataAgendamento', 'dataRealizacao', 'observacoes', 'localAgendamento', 'enderecoAgendamento', 'horarioAgendamento', 'campanhaId']
 
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
-        const dbField = ['idadeAnos', 'idadeMeses', 'registroSinpatinhas', 'dataAgendamento', 'dataRealizacao', 'localAgendamento', 'enderecoAgendamento', 'horarioAgendamento'].includes(field)
+        const dbField = ['idadeAnos', 'idadeMeses', 'registroSinpatinhas', 'dataAgendamento', 'dataRealizacao', 'localAgendamento', 'enderecoAgendamento', 'horarioAgendamento', 'campanhaId'].includes(field)
           ? `"${field}"`
           : field
         updateFields.push(`${dbField} = $${paramIndex}`)
@@ -151,10 +152,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  const session = await getServerSession(authOptions)
-  if (!session) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-  }
+  const { error } = await requireRole('admin')
+  if (error) return error
 
   try {
     const { id } = await params

@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { pool } from '@/lib/pool'
+import { requireRole } from '@/lib/permissions'
+import { validateCPF, cleanCPF } from '@/lib/utils'
+import { validarTelefone, validarEmail } from '@/lib/sanitize'
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-  }
+  const { error } = await requireRole('admin', 'assistente')
+  if (error) return error
 
   try {
     const result = await pool.query(
@@ -22,18 +21,33 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-  }
+  const { error } = await requireRole('admin', 'assistente')
+  if (error) return error
 
   try {
     const body = await request.json()
 
+    if (!body.nome?.trim() || !body.cpf || !body.telefone || !body.endereco || !body.cidade || !body.bairro) {
+      return NextResponse.json({ error: 'Campos obrigatórios não preenchidos' }, { status: 400 })
+    }
+
+    const cpfLimpo = cleanCPF(body.cpf)
+    if (!validateCPF(cpfLimpo)) {
+      return NextResponse.json({ error: 'CPF inválido' }, { status: 400 })
+    }
+
+    if (!validarTelefone(body.telefone)) {
+      return NextResponse.json({ error: 'Telefone inválido' }, { status: 400 })
+    }
+
+    if (body.email && !validarEmail(body.email)) {
+      return NextResponse.json({ error: 'Email inválido' }, { status: 400 })
+    }
+
     // Verificar se CPF já existe
     const existing = await pool.query(
       'SELECT id FROM tutores WHERE cpf = $1',
-      [body.cpf]
+      [cpfLimpo]
     )
 
     if (existing.rows.length > 0) {
@@ -44,7 +58,7 @@ export async function POST(request: NextRequest) {
       `INSERT INTO tutores (nome, cpf, telefone, email, endereco, cidade, bairro)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [body.nome, body.cpf, body.telefone, body.email, body.endereco, body.cidade, body.bairro]
+      [body.nome.trim(), cpfLimpo, body.telefone.replace(/\D/g, ''), body.email?.trim() || null, body.endereco.trim(), body.cidade.trim(), body.bairro.trim()]
     )
 
     return NextResponse.json(result.rows[0], { status: 201 })

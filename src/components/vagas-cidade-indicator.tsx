@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import { MapPin, Users, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
 
-interface VagasCidade {
+interface VagasCampanha {
+  campanhaId: string
+  campanhaNome: string
   cidade: string
-  cidadeKey: string
   limite: number
   ocupadas: number
   disponiveis: number
@@ -14,7 +15,7 @@ interface VagasCidade {
 }
 
 export function VagasCidadeIndicator() {
-  const [vagas, setVagas] = useState<VagasCidade[]>([])
+  const [vagas, setVagas] = useState<VagasCampanha[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -48,7 +49,7 @@ export function VagasCidadeIndicator() {
     <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
       <div className="flex items-center gap-2 mb-4">
         <MapPin className="w-5 h-5 text-primary" />
-        <h3 className="font-semibold text-gray-900">Vagas por Cidade</h3>
+        <h3 className="font-semibold text-gray-900">Vagas por Campanha</h3>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -59,7 +60,7 @@ export function VagasCidadeIndicator() {
 
           return (
             <div
-              key={vaga.cidadeKey}
+              key={vaga.campanhaId}
               className={`p-3 rounded-lg border-2 ${
                 isEsgotada
                   ? 'border-red-200 bg-red-50'
@@ -77,8 +78,12 @@ export function VagasCidadeIndicator() {
                   <CheckCircle2 className="w-4 h-4 text-green-500" />
                 )}
                 <span className="text-sm font-medium text-gray-900 truncate">
-                  {vaga.cidade}
+                  {vaga.campanhaNome}
                 </span>
+              </div>
+
+              <div className="text-xs text-gray-500 mb-1 truncate">
+                {vaga.cidade}
               </div>
 
               <div className="space-y-1">

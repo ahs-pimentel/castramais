@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { enviarMensagemWhatsApp } from '@/lib/evolution'
+import { verificarWebhookChatwoot } from '@/lib/webhook-auth'
 
 // Webhook que recebe mensagens do Chatwoot e envia para WhatsApp via Evolution API
 // Payload do Chatwoot tem campos no nível raiz (não dentro de "message")
@@ -21,6 +22,10 @@ function addToCache(messageId: number) {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!verificarWebhookChatwoot(request)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const payload = await request.json()
 
     console.log('[Webhook Chatwoot] Recebido:', payload.event)

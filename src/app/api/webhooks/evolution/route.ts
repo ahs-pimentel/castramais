@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/pool'
+import { verificarWebhookEvolution } from '@/lib/webhook-auth'
 
 // Webhook para receber eventos do Evolution API
 // Isso permite integração bidirecional com WhatsApp via Chatwoot
@@ -27,6 +28,10 @@ interface EvolutionWebhookPayload {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!verificarWebhookEvolution(request)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const payload: EvolutionWebhookPayload = await request.json()
 
     console.log('[Evolution Webhook] Evento recebido:', payload.event)

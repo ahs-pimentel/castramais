@@ -16,9 +16,17 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<Stats>({ total: 0, pendentes: 0, agendados: 0, realizados: 0, listaEspera: 0 })
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
-  const [cidade, setCidade] = useState('')
+  const [campanha, setCampanha] = useState('')
+  const [campanhas, setCampanhas] = useState<{ id: string; nome: string; cidade: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'lista' | 'novo'>('lista')
+
+  useEffect(() => {
+    fetch('/api/campanhas')
+      .then(res => res.ok ? res.json() : [])
+      .then(data => setCampanhas(data))
+      .catch(() => setCampanhas([]))
+  }, [])
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -26,7 +34,7 @@ export default function DashboardPage() {
       const params = new URLSearchParams()
       if (search) params.set('search', search)
       if (status) params.set('status', status)
-      if (cidade) params.set('cidade', cidade)
+      if (campanha) params.set('campanhaId', campanha)
 
       const [animaisRes, statsRes] = await Promise.all([
         fetch(`/api/animais?${params}`),
@@ -47,7 +55,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [search, status, cidade])
+  }, [search, status, campanha])
 
   useEffect(() => {
     const debounce = setTimeout(() => {
@@ -90,21 +98,22 @@ export default function DashboardPage() {
           <SearchFilter
             search={search}
             status={status}
-            cidade={cidade}
+            campanha={campanha}
             onSearchChange={setSearch}
             onStatusChange={setStatus}
-            onCidadeChange={setCidade}
-            showCidadeFilter={true}
+            onCampanhaChange={setCampanha}
+            campanhas={campanhas}
           />
         </div>
         <Button
           variant="outline"
           size="sm"
           onClick={() => {
+            const campanhaObj = campanhas.find(c => c.id === campanha)
             const filtros = [
               search && `Busca: "${search}"`,
               status && `Status: ${status}`,
-              cidade && `Cidade: ${cidade}`,
+              campanhaObj && `Campanha: ${campanhaObj.nome}`,
             ].filter(Boolean).join(', ')
             gerarPDFAnimais(animais, filtros || undefined)
           }}

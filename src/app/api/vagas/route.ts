@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import { obterVagasTodasCidades } from '@/lib/services/vagas'
+import { obterVagasTodasCampanhas } from '@/lib/services/vagas'
 
 // Endpoint público para verificar vagas (usado no formulário)
 export async function GET() {
   try {
-    const vagas = await obterVagasTodasCidades()
+    const vagas = await obterVagasTodasCampanhas()
 
     return NextResponse.json({
       vagas,

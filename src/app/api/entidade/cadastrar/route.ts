@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/pool'
 import bcrypt from 'bcryptjs'
+import { checkRateLimit } from '@/lib/rate-limit'
+import { validarSenha, validarEmail, validarTelefone, sanitizeInput } from '@/lib/sanitize'
+import { RATE_LIMITS } from '@/lib/constants'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,6 +15,26 @@ export async function POST(request: NextRequest) {
         { error: 'Campos obrigatórios não preenchidos' },
         { status: 400 }
       )
+    }
+
+    if (!validarEmail(email)) {
+      return NextResponse.json({ error: 'Email inválido' }, { status: 400 })
+    }
+
+    if (!validarTelefone(telefone)) {
+      return NextResponse.json({ error: 'Telefone inválido' }, { status: 400 })
+    }
+
+    const senhaCheck = validarSenha(password)
+    if (!senhaCheck.valida) {
+      return NextResponse.json({ error: senhaCheck.erro }, { status: 400 })
+    }
+
+    // Rate limiting
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+    const limit = await checkRateLimit(`cadastro:entidade:ip:${ip}`, RATE_LIMITS.CADASTRO_PER_IP.max, RATE_LIMITS.CADASTRO_PER_IP.windowMs)
+    if (!limit.allowed) {
+      return NextResponse.json({ error: 'Muitas tentativas. Tente novamente em 1 hora.' }, { status: 429 })
     }
 
     // Verificar se email já existe
@@ -50,7 +73,7 @@ export async function POST(request: NextRequest) {
       `INSERT INTO entidades (nome, cnpj, responsavel, telefone, email, password, cidade, bairro, ativo)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, false)
        RETURNING id, nome, email`,
-      [nome, cnpj || null, responsavel, telefone, email, hashedPassword, cidade, bairro || null]
+      [sanitizeInput(nome), cnpj || null, sanitizeInput(responsavel), telefone.replace(/\D/g, ''), email.trim(), hashedPassword, sanitizeInput(cidade, 100), bairro ? sanitizeInput(bairro, 100) : null]
     )
 
     return NextResponse.json({

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { ArrowLeft, Trash2, Loader2, Phone, Mail, MapPin, Calendar, PawPrint, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -42,6 +43,8 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 export default function TutorDetailPage({ params }: { params: Promise<PageParams> }) {
   const { id } = use(params)
   const router = useRouter()
+  const { data: session } = useSession()
+  const role = session?.user?.role || 'admin'
   const [tutor, setTutor] = useState<Tutor | null>(null)
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
@@ -131,21 +134,23 @@ export default function TutorDetailPage({ params }: { params: Promise<PageParams
           </Link>
           <h1 className="text-xl font-semibold text-gray-900">{tutor.nome}</h1>
         </div>
-        <Button
-          variant="danger"
-          size="sm"
-          onClick={handleDelete}
-          disabled={deleting}
-        >
-          {deleting ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <>
-              <Trash2 className="w-4 h-4 mr-2" />
-              Excluir
-            </>
-          )}
-        </Button>
+        {role === 'admin' && (
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={handleDelete}
+            disabled={deleting}
+          >
+            {deleting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <>
+                <Trash2 className="w-4 h-4 mr-2" />
+                Excluir
+              </>
+            )}
+          </Button>
+        )}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">

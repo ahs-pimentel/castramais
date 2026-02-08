@@ -56,6 +56,11 @@ interface Animal {
     cidade: string
     bairro: string
   } | null
+  campanha?: {
+    id: string
+    nome: string
+    cidade: string
+  } | null
 }
 
 interface Tutor {
@@ -115,6 +120,7 @@ function traduzirStatus(status: string): string {
     castrado: 'Castrado',
     realizado: 'Realizado',
     cancelado: 'Cancelado',
+    lista_espera: 'Lista de Espera',
   }
   return map[status] || status
 }
@@ -150,16 +156,45 @@ function adicionarCabecalho(doc: jsPDF, titulo: string) {
   doc.line(14, 44, 196, 44)
 }
 
+function adicionarCabecalhoLandscape(doc: jsPDF, titulo: string) {
+  doc.setFontSize(22)
+  doc.setTextColor(...CORES.laranja)
+  doc.text('Castra', 14, 20)
+  doc.setTextColor(...CORES.azulMarinho)
+  doc.text('+MG', 45, 20)
+
+  doc.setFontSize(16)
+  doc.setTextColor(60, 60, 60)
+  doc.text(titulo, 14, 32)
+
+  doc.setFontSize(10)
+  doc.setTextColor(120, 120, 120)
+  const dataGeracao = new Date().toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+  doc.text(`Gerado em: ${dataGeracao}`, 14, 40)
+
+  doc.setDrawColor(...CORES.laranja)
+  doc.setLineWidth(0.5)
+  doc.line(14, 44, 283, 44) // wider line for landscape
+}
+
 function adicionarRodape(doc: jsPDF) {
   const pageCount = doc.getNumberOfPages()
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i)
     doc.setFontSize(9)
     doc.setTextColor(150, 150, 150)
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
     doc.text(
       `Página ${i} de ${pageCount} - Castra+MG - Sistema de Gestão de Castrações`,
-      105,
-      290,
+      pageWidth / 2,
+      pageHeight - 10,
       { align: 'center' }
     )
   }
@@ -167,9 +202,9 @@ function adicionarRodape(doc: jsPDF) {
 
 // Gerar PDF de lista de animais
 export function gerarPDFAnimais(animais: Animal[], filtros?: string): void {
-  const doc = new jsPDF()
+  const doc = new jsPDF('l') // landscape para caber mais colunas
 
-  adicionarCabecalho(doc, 'Relatório de Animais Cadastrados')
+  adicionarCabecalhoLandscape(doc, 'Relatório de Animais Cadastrados')
 
   if (filtros) {
     doc.setFontSize(10)
@@ -179,8 +214,8 @@ export function gerarPDFAnimais(animais: Animal[], filtros?: string): void {
 
   const startY = filtros ? 58 : 52
 
-  // Tabela de animais
-  const headers = [['Nome', 'Espécie', 'Raça', 'Sexo', 'RG Animal', 'Status', 'Tutor']]
+  // Tabela de animais com novos campos
+  const headers = [['Nome', 'Espécie', 'Raça', 'Sexo', 'RG Animal', 'Status', 'Tutor', 'Tel. Tutor', 'Cidade Tutor', 'Campanha']]
   const data = animais.map((a) => [
     a.nome,
     a.especie === 'cachorro' ? 'Cão' : 'Gato',
@@ -189,6 +224,9 @@ export function gerarPDFAnimais(animais: Animal[], filtros?: string): void {
     a.registroSinpatinhas,
     traduzirStatus(a.status),
     a.tutor?.nome || '-',
+    a.tutor?.telefone ? formatarTelefone(a.tutor.telefone) : '-',
+    a.tutor?.cidade || '-',
+    a.campanha?.nome || a.campanha?.cidade || '-',
   ])
 
   doc.autoTable({
@@ -200,23 +238,26 @@ export function gerarPDFAnimais(animais: Animal[], filtros?: string): void {
       fillColor: CORES.azulMarinho,
       textColor: [255, 255, 255],
       fontStyle: 'bold',
-      fontSize: 10,
+      fontSize: 8,
     },
     bodyStyles: {
-      fontSize: 9,
+      fontSize: 7,
     },
     alternateRowStyles: {
       fillColor: [245, 245, 245],
     },
     margin: { left: 14, right: 14 },
     columnStyles: {
-      0: { cellWidth: 30 },
-      1: { cellWidth: 22 },
-      2: { cellWidth: 30 },
-      3: { cellWidth: 15 },
-      4: { cellWidth: 30 },
-      5: { cellWidth: 25 },
-      6: { cellWidth: 'auto' },
+      0: { cellWidth: 25 },
+      1: { cellWidth: 18 },
+      2: { cellWidth: 25 },
+      3: { cellWidth: 12 },
+      4: { cellWidth: 28 },
+      5: { cellWidth: 22 },
+      6: { cellWidth: 30 },
+      7: { cellWidth: 30 },
+      8: { cellWidth: 30 },
+      9: { cellWidth: 'auto' },
     },
   })
 

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/pool'
 import jwt from 'jsonwebtoken'
-
-const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'entidade-secret-key'
+import { getEntidadeJwtSecret } from '@/lib/jwt-secrets'
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,7 +15,7 @@ export async function GET(request: NextRequest) {
 
     let payload: { id: string; nome: string; cidade: string; bairro: string | null }
     try {
-      payload = jwt.verify(token, JWT_SECRET) as typeof payload
+      payload = jwt.verify(token, getEntidadeJwtSecret()) as typeof payload
     } catch {
       return NextResponse.json({ error: 'Token inválido' }, { status: 401 })
     }
@@ -33,9 +32,9 @@ export async function GET(request: NextRequest) {
 
     const entidade = entidadeResult.rows[0]
 
-    // Buscar animais da região (cidade e opcionalmente bairro)
-    let animaisQuery = `
-      SELECT
+    // Buscar animais das campanhas vinculadas à entidade
+    const animaisResult = await pool.query(
+      `SELECT
         a.id,
         a.nome,
         a.especie,
@@ -55,20 +54,11 @@ export async function GET(request: NextRequest) {
         ) as tutor
       FROM animais a
       JOIN tutores t ON a."tutorId" = t.id
-      WHERE LOWER(t.cidade) = LOWER($1)
-    `
-
-    const params: (string | null)[] = [entidade.cidade]
-
-    // Se a entidade tem bairro específico, filtrar por bairro também
-    if (entidade.bairro) {
-      animaisQuery += ` AND LOWER(t.bairro) = LOWER($2)`
-      params.push(entidade.bairro)
-    }
-
-    animaisQuery += ` ORDER BY a."createdAt" DESC`
-
-    const animaisResult = await pool.query(animaisQuery, params)
+      JOIN campanhas_entidades ce ON a."campanhaId" = ce."campanhaId"
+      WHERE ce."entidadeId" = $1
+      ORDER BY a."createdAt" DESC`,
+      [entidade.id]
+    )
 
     return NextResponse.json({
       entidade: {

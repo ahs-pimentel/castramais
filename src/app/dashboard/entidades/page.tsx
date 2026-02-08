@@ -1,30 +1,22 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Phone, Mail, MapPin, Building2, Check, X, Loader2, FileDown } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { Search, Phone, Mail, MapPin, Building2, Check, X, Loader2, FileDown, Trash2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { gerarPDFEntidades } from '@/lib/pdf-generator'
-
-interface Entidade {
-  id: string
-  nome: string
-  cnpj: string | null
-  responsavel: string
-  telefone: string
-  email: string
-  cidade: string
-  bairro: string | null
-  ativo: boolean
-  createdAt: string
-}
+import { Entidade } from '@/lib/types'
 
 export default function EntidadesPage() {
+  const { data: session } = useSession()
+  const role = session?.user?.role || 'admin'
   const [entidades, setEntidades] = useState<Entidade[]>([])
   const [loading, setLoading] = useState(true)
   const [busca, setBusca] = useState('')
   const [updating, setUpdating] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
 
   useEffect(() => {
     fetchEntidades()
@@ -60,6 +52,25 @@ export default function EntidadesPage() {
       console.error('Erro ao atualizar entidade:', error)
     } finally {
       setUpdating(null)
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Tem certeza que deseja excluir esta entidade? Esta ação não pode ser desfeita.')) return
+    setDeleting(id)
+    try {
+      const res = await fetch(`/api/admin/entidades/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setEntidades(entidades.filter(e => e.id !== id))
+      } else {
+        const data = await res.json()
+        alert(data.error || 'Erro ao excluir')
+      }
+    } catch (error) {
+      console.error('Erro ao excluir entidade:', error)
+      alert('Erro ao excluir')
+    } finally {
+      setDeleting(null)
     }
   }
 
@@ -227,6 +238,21 @@ export default function EntidadesPage() {
                             <Check className="w-4 h-4 mr-1" />
                             Aprovar
                           </>
+                        )}
+                      </Button>
+                    )}
+                    {role === 'admin' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(entidade.id)}
+                        disabled={deleting === entidade.id}
+                        className="text-gray-400 hover:text-red-600 hover:bg-red-50"
+                      >
+                        {deleting === entidade.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
                         )}
                       </Button>
                     )}

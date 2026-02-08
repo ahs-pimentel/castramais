@@ -1,8 +1,6 @@
 // Integração com Evolution API para envio de mensagens WhatsApp
 
-const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL || ''
-const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY || ''
-const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || ''
+import { EVOLUTION_API_URL, EVOLUTION_API_KEY, EVOLUTION_INSTANCE } from './constants'
 
 interface SendMessageResponse {
   key: {

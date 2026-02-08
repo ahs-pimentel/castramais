@@ -1,14 +1,9 @@
 import { pool } from '@/lib/pool'
-import {
-  CIDADES_CAMPANHA,
-  normalizarCidade,
-  CidadeCampanhaKey,
-  getTodasCidadesKeys
-} from '@/lib/config/cities'
 
-export interface VagasCidade {
+export interface VagasCampanha {
+  campanhaId: string
+  campanhaNome: string
   cidade: string
-  cidadeKey: CidadeCampanhaKey
   limite: number
   ocupadas: number
   disponiveis: number
@@ -16,55 +11,39 @@ export interface VagasCidade {
   esgotadas: boolean
 }
 
-// Status que ocupam vaga (contam para o limite)
 const STATUS_OCUPAM_VAGA = ['pendente', 'agendado']
 
-export async function contarVagasPorCidade(cidadeKey: CidadeCampanhaKey): Promise<VagasCidade> {
-  const config = CIDADES_CAMPANHA[cidadeKey]
+export async function contarVagasPorCampanha(campanhaId: string): Promise<VagasCampanha | null> {
+  const campanha = await pool.query(
+    'SELECT id, nome, cidade, limite FROM campanhas WHERE id = $1',
+    [campanhaId]
+  )
 
-  // Monta padrões LIKE para todas as variações do nome da cidade
-  const padroes = config.variacoes.flatMap(v => [
-    `${v}/${config.uf}`,
-    `${v.toLowerCase()}/${config.uf.toLowerCase()}`,
-    v,
-    v.toLowerCase()
-  ])
-  const padroesUnicos = [...new Set(padroes)]
+  if (campanha.rows.length === 0) return null
 
-  // Query para contar animais com status que ocupam vaga
-  const likeConditions = padroesUnicos.map((_, i) => `LOWER(t.cidade) LIKE LOWER($${i + 1})`).join(' OR ')
+  const { id, nome, cidade, limite } = campanha.rows[0]
 
-  const queryOcupadas = `
-    SELECT COUNT(*)::int as total
-    FROM animais a
-    INNER JOIN tutores t ON a."tutorId" = t.id
-    WHERE a.status = ANY($${padroesUnicos.length + 1}::text[])
-    AND (${likeConditions})
-  `
+  const resultOcupadas = await pool.query(
+    `SELECT COUNT(*)::int as total FROM animais
+     WHERE "campanhaId" = $1 AND status = ANY($2::text[])`,
+    [id, STATUS_OCUPAM_VAGA]
+  )
 
-  const paramsOcupadas = [...padroesUnicos.map(p => `%${p}%`), STATUS_OCUPAM_VAGA]
-  const resultOcupadas = await pool.query(queryOcupadas, paramsOcupadas)
-
-  // Query para contar lista de espera
-  const queryEspera = `
-    SELECT COUNT(*)::int as total
-    FROM animais a
-    INNER JOIN tutores t ON a."tutorId" = t.id
-    WHERE a.status = 'lista_espera'
-    AND (${likeConditions})
-  `
-
-  const paramsEspera = padroesUnicos.map(p => `%${p}%`)
-  const resultEspera = await pool.query(queryEspera, paramsEspera)
+  const resultEspera = await pool.query(
+    `SELECT COUNT(*)::int as total FROM animais
+     WHERE "campanhaId" = $1 AND status = 'lista_espera'`,
+    [id]
+  )
 
   const ocupadas = resultOcupadas.rows[0]?.total || 0
   const listaEspera = resultEspera.rows[0]?.total || 0
-  const disponiveis = Math.max(0, config.limite - ocupadas)
+  const disponiveis = Math.max(0, limite - ocupadas)
 
   return {
-    cidade: config.nome,
-    cidadeKey,
-    limite: config.limite,
+    campanhaId: id,
+    campanhaNome: nome,
+    cidade,
+    limite,
     ocupadas,
     disponiveis,
     listaEspera,
@@ -72,28 +51,28 @@ export async function contarVagasPorCidade(cidadeKey: CidadeCampanhaKey): Promis
   }
 }
 
-export async function obterVagasTodasCidades(): Promise<VagasCidade[]> {
-  const cidades = getTodasCidadesKeys()
-  return Promise.all(cidades.map(contarVagasPorCidade))
+export async function obterVagasTodasCampanhas(): Promise<VagasCampanha[]> {
+  const campanhas = await pool.query(
+    'SELECT id FROM campanhas WHERE ativa = true ORDER BY "dataInicio" ASC NULLS LAST'
+  )
+  const resultados = await Promise.all(
+    campanhas.rows.map((c: { id: string }) => contarVagasPorCampanha(c.id))
+  )
+  return resultados.filter((v): v is VagasCampanha => v !== null)
 }
 
-export async function verificarDisponibilidadeVaga(cidadeTutor: string): Promise<{
+export async function verificarDisponibilidadeVaga(campanhaId: string): Promise<{
   disponivel: boolean
-  vagasInfo: VagasCidade | null
-  cidadeValida: boolean
+  vagasInfo: VagasCampanha | null
 }> {
-  const cidadeKey = normalizarCidade(cidadeTutor)
+  const vagasInfo = await contarVagasPorCampanha(campanhaId)
 
-  if (!cidadeKey) {
-    // Cidade não participa da campanha - ainda pode cadastrar como pendente normal
-    return { disponivel: true, vagasInfo: null, cidadeValida: false }
+  if (!vagasInfo) {
+    return { disponivel: false, vagasInfo: null }
   }
-
-  const vagasInfo = await contarVagasPorCidade(cidadeKey)
 
   return {
     disponivel: !vagasInfo.esgotadas,
-    vagasInfo,
-    cidadeValida: true
+    vagasInfo
   }
 }

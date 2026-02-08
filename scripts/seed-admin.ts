@@ -1,49 +1,43 @@
-import 'reflect-metadata'
-import { DataSource } from 'typeorm'
+import { Pool } from 'pg'
 import bcrypt from 'bcryptjs'
-import { User } from '../src/entities/User'
+import { v4 as uuidv4 } from 'uuid'
 
 async function seedAdmin() {
-  const dataSource = new DataSource({
-    type: 'postgres',
-    url: process.env.DATABASE_URL,
-    synchronize: true,
-    entities: [User],
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
   })
 
-  await dataSource.initialize()
   console.log('Conectado ao banco de dados')
 
-  const userRepository = dataSource.getRepository(User)
+  const email = process.env.ADMIN_EMAIL || 'admin@castramaismg.org'
+  const password = process.env.ADMIN_PASSWORD || 'admin123'
 
   // Verificar se já existe um admin
-  const existingAdmin = await userRepository.findOne({
-    where: { email: 'admin@castrapet.com' },
-  })
+  const existing = await pool.query(
+    'SELECT id FROM users WHERE email = $1',
+    [email]
+  )
 
-  if (existingAdmin) {
+  if (existing.rows.length > 0) {
     console.log('Usuário admin já existe!')
-    await dataSource.destroy()
+    await pool.end()
     return
   }
 
   // Criar usuário admin
-  const hashedPassword = await bcrypt.hash('admin123', 10)
+  const hashedPassword = await bcrypt.hash(password, 10)
 
-  const admin = userRepository.create({
-    email: 'admin@castrapet.com',
-    password: hashedPassword,
-    nome: 'Administrador',
-  })
+  await pool.query(
+    `INSERT INTO users (id, email, password, nome, role, "createdAt")
+     VALUES ($1, $2, $3, $4, $5, NOW())`,
+    [uuidv4(), email, hashedPassword, 'Administrador', 'admin']
+  )
 
-  await userRepository.save(admin)
   console.log('Usuário admin criado com sucesso!')
-  console.log('Email: admin@castrapet.com')
-  console.log('Senha: admin123')
-  console.log('')
+  console.log(`Email: ${email}`)
   console.log('IMPORTANTE: Altere a senha após o primeiro login!')
 
-  await dataSource.destroy()
+  await pool.end()
 }
 
 seedAdmin().catch(console.error)

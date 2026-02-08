@@ -2,28 +2,20 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Loader2, QrCode } from 'lucide-react'
-import { Button } from './ui/button'
-import { Input } from './ui/input'
-import { Select } from './ui/select'
-import { Card, CardContent, CardHeader } from './ui/card'
-import { CreateAnimalDTO, AnimalWithTutor, UpdateAnimalDTO } from '@/lib/types'
-import { formatCPF, cleanCPF, validateCPF } from '@/lib/utils'
+import { Loader2 } from 'lucide-react'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+import { Select } from '../ui/select'
+import { Card, CardContent, CardHeader } from '../ui/card'
+import { CreateAnimalDTO, AnimalWithTutor, UpdateAnimalDTO, Entidade, Campanha } from '@/lib/types'
+import { cleanCPF, validateCPF } from '@/lib/utils'
+import { TutorSearch } from './tutor-search'
+import { PetFields } from './pet-fields'
 
 interface AnimalFormProps {
   animal?: AnimalWithTutor
   mode: 'create' | 'edit'
 }
-
-const especieOptions = [
-  { value: 'cachorro', label: 'Cachorro' },
-  { value: 'gato', label: 'Gato' },
-]
-
-const sexoOptions = [
-  { value: 'macho', label: 'Macho' },
-  { value: 'femea', label: 'Fêmea' },
-]
 
 const statusOptions = [
   { value: 'pendente', label: 'Pendente' },
@@ -38,6 +30,8 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
   const [searchingTutor, setSearchingTutor] = useState(false)
   const [tutorFound, setTutorFound] = useState<boolean | null>(mode === 'edit' ? true : null)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [entidades, setEntidades] = useState<Entidade[]>([])
+  const [campanhas, setCampanhas] = useState<Campanha[]>([])
 
   const [formData, setFormData] = useState({
     // Animal
@@ -56,6 +50,7 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
     localAgendamento: animal?.localAgendamento || '',
     enderecoAgendamento: animal?.enderecoAgendamento || '',
     dataRealizacao: animal?.dataRealizacao?.split('T')[0] || '',
+    campanhaId: (animal as unknown as { campanhaId?: string })?.campanhaId || '',
     // Tutor
     tutorId: animal?.tutor?.id || '',
     tutorCpf: animal?.tutor?.cpf || '',
@@ -66,6 +61,39 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
     tutorCidade: animal?.tutor?.cidade || '',
     tutorBairro: animal?.tutor?.bairro || '',
   })
+
+  useEffect(() => {
+    if (mode === 'edit') {
+      fetch('/api/admin/entidades')
+        .then(res => res.ok ? res.json() : [])
+        .then((data: Entidade[]) => setEntidades(data.filter(e => e.ativo)))
+        .catch(() => setEntidades([]))
+
+      fetch('/api/campanhas')
+        .then(res => res.ok ? res.json() : [])
+        .then((data: Campanha[]) => setCampanhas(data))
+        .catch(() => setCampanhas([]))
+    }
+  }, [mode])
+
+  const handleEntidadeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const entidadeId = e.target.value
+    const entidade = entidades.find(ent => ent.id === entidadeId)
+    if (entidade) {
+      const endereco = [entidade.bairro, entidade.cidade].filter(Boolean).join(' - ')
+      setFormData(prev => ({
+        ...prev,
+        localAgendamento: entidade.nome,
+        enderecoAgendamento: endereco,
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        localAgendamento: '',
+        enderecoAgendamento: '',
+      }))
+    }
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -124,17 +152,17 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
   const validate = () => {
     const newErrors: Record<string, string> = {}
 
-    if (!formData.nome.trim()) newErrors.nome = 'Nome é obrigatório'
-    if (!formData.raca.trim()) newErrors.raca = 'Raça é obrigatória'
-    if (!formData.tutorCpf.trim()) newErrors.tutorCpf = 'CPF é obrigatório'
-    else if (!validateCPF(formData.tutorCpf)) newErrors.tutorCpf = 'CPF inválido'
+    if (!formData.nome.trim()) newErrors.nome = 'Nome \u00e9 obrigat\u00f3rio'
+    if (!formData.raca.trim()) newErrors.raca = 'Ra\u00e7a \u00e9 obrigat\u00f3ria'
+    if (!formData.tutorCpf.trim()) newErrors.tutorCpf = 'CPF \u00e9 obrigat\u00f3rio'
+    else if (!validateCPF(formData.tutorCpf)) newErrors.tutorCpf = 'CPF inv\u00e1lido'
 
     if (tutorFound === false) {
-      if (!formData.tutorNome.trim()) newErrors.tutorNome = 'Nome do tutor é obrigatório'
-      if (!formData.tutorTelefone.trim()) newErrors.tutorTelefone = 'Telefone é obrigatório'
-      if (!formData.tutorEndereco.trim()) newErrors.tutorEndereco = 'Endereço é obrigatório'
-      if (!formData.tutorCidade.trim()) newErrors.tutorCidade = 'Cidade é obrigatória'
-      if (!formData.tutorBairro.trim()) newErrors.tutorBairro = 'Bairro é obrigatório'
+      if (!formData.tutorNome.trim()) newErrors.tutorNome = 'Nome do tutor \u00e9 obrigat\u00f3rio'
+      if (!formData.tutorTelefone.trim()) newErrors.tutorTelefone = 'Telefone \u00e9 obrigat\u00f3rio'
+      if (!formData.tutorEndereco.trim()) newErrors.tutorEndereco = 'Endere\u00e7o \u00e9 obrigat\u00f3rio'
+      if (!formData.tutorCidade.trim()) newErrors.tutorCidade = 'Cidade \u00e9 obrigat\u00f3ria'
+      if (!formData.tutorBairro.trim()) newErrors.tutorBairro = 'Bairro \u00e9 obrigat\u00f3rio'
     }
 
     setErrors(newErrors)
@@ -148,7 +176,7 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
     setLoading(true)
     try {
       if (mode === 'create') {
-        const payload: CreateAnimalDTO = {
+        const payload: CreateAnimalDTO & { campanhaId?: string } = {
           nome: formData.nome,
           especie: formData.especie as 'cachorro' | 'gato',
           raca: formData.raca,
@@ -158,6 +186,7 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
           idadeMeses: formData.idadeMeses ? parseInt(formData.idadeMeses) : undefined,
           registroSinpatinhas: formData.registroSinpatinhas,
           observacoes: formData.observacoes || undefined,
+          campanhaId: formData.campanhaId || undefined,
         }
 
         if (formData.tutorId) {
@@ -182,7 +211,7 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
 
         if (!res.ok) throw new Error('Erro ao cadastrar')
       } else {
-        const payload: UpdateAnimalDTO = {
+        const payload: UpdateAnimalDTO & { campanhaId?: string | null } = {
           nome: formData.nome,
           especie: formData.especie as 'cachorro' | 'gato',
           raca: formData.raca,
@@ -198,6 +227,7 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
           localAgendamento: formData.localAgendamento || null,
           enderecoAgendamento: formData.enderecoAgendamento || null,
           dataRealizacao: formData.dataRealizacao || null,
+          campanhaId: formData.campanhaId || null,
         }
 
         const res = await fetch(`/api/animais/${animal?.id}`, {
@@ -219,6 +249,14 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
     }
   }
 
+  const campanhaOptions = [
+    { value: '', label: 'Sem campanha' },
+    ...campanhas.map(c => ({
+      value: c.id,
+      label: `${c.nome} \u2014 ${c.cidade}${!c.ativa ? ' (inativa)' : ''}`,
+    })),
+  ]
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {mode === 'create' && (
@@ -226,86 +264,15 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
           <CardHeader>
             <h2 className="font-semibold text-gray-900">Tutor</h2>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="relative">
-              <Input
-                id="tutorCpf"
-                name="tutorCpf"
-                label="CPF do Tutor"
-                value={formatCPF(formData.tutorCpf)}
-                onChange={handleCPFChange}
-                placeholder="000.000.000-00"
-                error={errors.tutorCpf}
-              />
-              {searchingTutor && (
-                <Loader2 className="absolute right-3 top-9 w-5 h-5 text-gray-400 animate-spin" />
-              )}
-            </div>
-
-            {tutorFound === true && (
-              <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
-                Tutor encontrado: {formData.tutorNome}
-              </div>
-            )}
-
-            {tutorFound === false && (
-              <>
-                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
-                  Tutor não encontrado. Preencha os dados abaixo para cadastrar.
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    id="tutorNome"
-                    name="tutorNome"
-                    label="Nome Completo"
-                    value={formData.tutorNome}
-                    onChange={handleChange}
-                    error={errors.tutorNome}
-                  />
-                  <Input
-                    id="tutorTelefone"
-                    name="tutorTelefone"
-                    label="Telefone"
-                    value={formData.tutorTelefone}
-                    onChange={handleChange}
-                    placeholder="(00) 00000-0000"
-                    error={errors.tutorTelefone}
-                  />
-                  <Input
-                    id="tutorEmail"
-                    name="tutorEmail"
-                    label="Email (opcional)"
-                    type="email"
-                    value={formData.tutorEmail}
-                    onChange={handleChange}
-                  />
-                  <Input
-                    id="tutorEndereco"
-                    name="tutorEndereco"
-                    label="Endereço"
-                    value={formData.tutorEndereco}
-                    onChange={handleChange}
-                    error={errors.tutorEndereco}
-                  />
-                  <Input
-                    id="tutorCidade"
-                    name="tutorCidade"
-                    label="Cidade"
-                    value={formData.tutorCidade}
-                    onChange={handleChange}
-                    error={errors.tutorCidade}
-                  />
-                  <Input
-                    id="tutorBairro"
-                    name="tutorBairro"
-                    label="Bairro"
-                    value={formData.tutorBairro}
-                    onChange={handleChange}
-                    error={errors.tutorBairro}
-                  />
-                </div>
-              </>
-            )}
+          <CardContent>
+            <TutorSearch
+              formData={formData}
+              errors={errors}
+              tutorFound={tutorFound}
+              searchingTutor={searchingTutor}
+              onCPFChange={handleCPFChange}
+              onChange={handleChange}
+            />
           </CardContent>
         </Card>
       )}
@@ -314,90 +281,14 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
         <CardHeader>
           <h2 className="font-semibold text-gray-900">Animal</h2>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {mode === 'edit' && animal?.registroSinpatinhas && (
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <QrCode className="w-5 h-5 text-gray-500" />
-              <div>
-                <p className="text-xs text-gray-500">RG Animal (SinPatinhas)</p>
-                <p className="font-mono font-medium text-gray-900">{animal.registroSinpatinhas}</p>
-              </div>
-            </div>
-          )}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              id="nome"
-              name="nome"
-              label="Nome do Animal"
-              value={formData.nome}
-              onChange={handleChange}
-              error={errors.nome}
-            />
-            <Select
-              id="especie"
-              name="especie"
-              label="Espécie"
-              value={formData.especie}
-              onChange={handleChange}
-              options={especieOptions}
-            />
-            <Input
-              id="raca"
-              name="raca"
-              label="Raça"
-              value={formData.raca}
-              onChange={handleChange}
-              error={errors.raca}
-            />
-            <Select
-              id="sexo"
-              name="sexo"
-              label="Sexo"
-              value={formData.sexo}
-              onChange={handleChange}
-              options={sexoOptions}
-            />
-            <Input
-              id="peso"
-              name="peso"
-              label="Peso (kg)"
-              type="number"
-              step="0.1"
-              value={formData.peso}
-              onChange={handleChange}
-            />
-            <div className="grid grid-cols-2 gap-2">
-              <Input
-                id="idadeAnos"
-                name="idadeAnos"
-                label="Idade (anos)"
-                type="number"
-                value={formData.idadeAnos}
-                onChange={handleChange}
-              />
-              <Input
-                id="idadeMeses"
-                name="idadeMeses"
-                label="Meses"
-                type="number"
-                value={formData.idadeMeses}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Observações médicas
-            </label>
-            <textarea
-              id="observacoes"
-              name="observacoes"
-              value={formData.observacoes}
-              onChange={handleChange}
-              rows={3}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-          </div>
+        <CardContent>
+          <PetFields
+            formData={formData}
+            errors={errors}
+            onChange={handleChange}
+            registroSinpatinhas={animal?.registroSinpatinhas}
+            showRG={mode === 'edit'}
+          />
         </CardContent>
       </Card>
 
@@ -416,17 +307,24 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
                 onChange={handleChange}
                 options={statusOptions}
               />
+              <Select
+                id="campanhaId"
+                name="campanhaId"
+                label="Campanha"
+                value={formData.campanhaId}
+                onChange={handleChange}
+                options={campanhaOptions}
+              />
               <Input
                 id="dataRealizacao"
                 name="dataRealizacao"
-                label="Data de Realização"
+                label="Data de Realiza\u00e7\u00e3o"
                 type="date"
                 value={formData.dataRealizacao}
                 onChange={handleChange}
               />
             </div>
 
-            {/* Campos de agendamento - aparecem quando status é "agendado" ou quando já tem dados */}
             {(formData.status === 'agendado' || formData.dataAgendamento) && (
               <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-4">
                 <h3 className="font-medium text-blue-900">Dados do Agendamento</h3>
@@ -442,27 +340,37 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
                   <Input
                     id="horarioAgendamento"
                     name="horarioAgendamento"
-                    label="Horário"
+                    label="Hor\u00e1rio"
                     type="time"
                     value={formData.horarioAgendamento}
                     onChange={handleChange}
                     placeholder="Ex: 08:00"
                   />
-                  <Input
-                    id="localAgendamento"
-                    name="localAgendamento"
-                    label="Local (Nome do estabelecimento)"
-                    value={formData.localAgendamento}
-                    onChange={handleChange}
-                    placeholder="Ex: Clínica Veterinária ABC"
-                  />
+                  <div className="w-full">
+                    <label htmlFor="entidadeSelect" className="block text-sm font-medium text-gray-700 mb-1">
+                      Local de Castra\u00e7\u00e3o (Entidade)
+                    </label>
+                    <select
+                      id="entidadeSelect"
+                      value={entidades.find(e => e.nome === formData.localAgendamento)?.id || ''}
+                      onChange={handleEntidadeChange}
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 bg-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors appearance-none cursor-pointer"
+                    >
+                      <option value="">Selecione uma entidade...</option>
+                      {entidades.map(ent => (
+                        <option key={ent.id} value={ent.id}>
+                          {ent.nome} \u2014 {[ent.bairro, ent.cidade].filter(Boolean).join(', ')}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <Input
                     id="enderecoAgendamento"
                     name="enderecoAgendamento"
-                    label="Endereço do Local"
+                    label="Endere\u00e7o do Local"
                     value={formData.enderecoAgendamento}
                     onChange={handleChange}
-                    placeholder="Ex: Rua das Flores, 123 - Centro"
+                    placeholder="Preenchido automaticamente pela entidade"
                   />
                 </div>
               </div>
@@ -493,7 +401,7 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
           ) : mode === 'create' ? (
             'Cadastrar'
           ) : (
-            'Salvar alterações'
+            'Salvar altera\u00e7\u00f5es'
           )}
         </Button>
       </div>
