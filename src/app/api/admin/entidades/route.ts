@@ -11,7 +11,7 @@ export async function GET() {
     if (error) return error
 
     const result = await pool.query(`
-      SELECT id, nome, cnpj, responsavel, telefone, email, cidade, bairro, ativo, "createdAt"
+      SELECT id, nome, cnpj, responsavel, telefone, email, cidade, bairro, endereco, ativo, "createdAt"
       FROM entidades
       ORDER BY ativo ASC, "createdAt" DESC
     `)
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     if (error) return error
 
     const body = await request.json()
-    const { nome, cnpj, responsavel, telefone, email, cidade, bairro } = body
+    const { nome, cnpj, responsavel, telefone, email, cidade, bairro, endereco } = body
 
     if (!nome || !responsavel || !telefone || !email || !cidade) {
       return NextResponse.json({ error: 'Campos obrigatórios não preenchidos' }, { status: 400 })
@@ -59,10 +59,10 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(senhaGerada, 10)
 
     const result = await pool.query(
-      `INSERT INTO entidades (nome, cnpj, responsavel, telefone, email, password, cidade, bairro, ativo)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
-       RETURNING id, nome, cnpj, responsavel, telefone, email, cidade, bairro, ativo, "createdAt"`,
-      [sanitizeInput(nome), cnpj || null, sanitizeInput(responsavel), telefone.replace(/\D/g, ''), email.trim(), hashedPassword, sanitizeInput(cidade, 100), bairro ? sanitizeInput(bairro, 100) : null]
+      `INSERT INTO entidades (nome, cnpj, responsavel, telefone, email, password, cidade, bairro, endereco, ativo)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true)
+       RETURNING id, nome, cnpj, responsavel, telefone, email, cidade, bairro, endereco, ativo, "createdAt"`,
+      [sanitizeInput(nome), cnpj || null, sanitizeInput(responsavel), telefone.replace(/\D/g, ''), email.trim(), hashedPassword, sanitizeInput(cidade, 100), bairro ? sanitizeInput(bairro, 100) : null, endereco ? sanitizeInput(endereco, 255) : null]
     )
 
     return NextResponse.json({ ...result.rows[0], senhaGerada })

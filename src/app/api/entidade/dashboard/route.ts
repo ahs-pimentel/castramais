@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     // Buscar entidade atualizada
     const entidadeResult = await pool.query(
-      'SELECT id, nome, cidade, bairro, ativo FROM entidades WHERE id = $1',
+      'SELECT id, nome, cidade, bairro, endereco, ativo FROM entidades WHERE id = $1',
       [payload.id]
     )
 
@@ -66,6 +66,7 @@ export async function GET(request: NextRequest) {
         nome: entidade.nome,
         cidade: entidade.cidade,
         bairro: entidade.bairro,
+        endereco: entidade.endereco,
       },
       animais: animaisResult.rows,
     })

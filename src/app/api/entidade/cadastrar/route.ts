@@ -8,7 +8,7 @@ import { RATE_LIMITS } from '@/lib/constants'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { nome, cnpj, responsavel, telefone, email, password, cidade, bairro } = body
+    const { nome, cnpj, responsavel, telefone, email, password, cidade, bairro, endereco } = body
 
     if (!nome || !responsavel || !telefone || !email || !password || !cidade) {
       return NextResponse.json(
@@ -70,10 +70,10 @@ export async function POST(request: NextRequest) {
 
     // Criar entidade (inativa por padrão, aguardando aprovação)
     const result = await pool.query(
-      `INSERT INTO entidades (nome, cnpj, responsavel, telefone, email, password, cidade, bairro, ativo)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, false)
+      `INSERT INTO entidades (nome, cnpj, responsavel, telefone, email, password, cidade, bairro, endereco, ativo)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false)
        RETURNING id, nome, email`,
-      [sanitizeInput(nome), cnpj || null, sanitizeInput(responsavel), telefone.replace(/\D/g, ''), email.trim(), hashedPassword, sanitizeInput(cidade, 100), bairro ? sanitizeInput(bairro, 100) : null]
+      [sanitizeInput(nome), cnpj || null, sanitizeInput(responsavel), telefone.replace(/\D/g, ''), email.trim(), hashedPassword, sanitizeInput(cidade, 100), bairro ? sanitizeInput(bairro, 100) : null, endereco ? sanitizeInput(endereco, 255) : null]
     )
 
     return NextResponse.json({

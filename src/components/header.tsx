@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { signOut, useSession } from 'next-auth/react'
-import { LogOut, PawPrint, Users, Building2, MessageSquare, Megaphone, UserCog } from 'lucide-react'
+import { LogOut, PawPrint, Users, Building2, MessageSquare, Megaphone, UserCog, Smartphone } from 'lucide-react'
 import { Button } from './ui/button'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -12,6 +12,7 @@ export function Header() {
   const { data: session } = useSession()
   const role = session?.user?.role || 'admin'
   const [chatwootUrl, setChatwootUrl] = useState<string | null>(null)
+  const [whatsappStatus, setWhatsappStatus] = useState<{ status: string; conectado: boolean } | null>(null)
 
   useEffect(() => {
     // Buscar URL do Chatwoot
@@ -23,6 +24,21 @@ export function Header() {
         }
       })
       .catch(() => {})
+
+    // Buscar status WhatsApp
+    fetch('/api/admin/whatsapp/status')
+      .then(res => res.json())
+      .then(data => setWhatsappStatus(data))
+      .catch(() => setWhatsappStatus({ status: 'erro', conectado: false }))
+
+    // Atualizar status a cada 60s
+    const interval = setInterval(() => {
+      fetch('/api/admin/whatsapp/status')
+        .then(res => res.json())
+        .then(data => setWhatsappStatus(data))
+        .catch(() => {})
+    }, 60000)
+    return () => clearInterval(interval)
   }, [])
 
   const navItems = [
@@ -67,6 +83,30 @@ export function Header() {
             </nav>
           </div>
           <div className="flex items-center gap-2">
+            {whatsappStatus && (
+              <div
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
+                  whatsappStatus.conectado
+                    ? 'bg-green-50 text-green-700'
+                    : whatsappStatus.status === 'não configurada'
+                      ? 'bg-gray-100 text-gray-500'
+                      : 'bg-red-50 text-red-700'
+                }`}
+                title={`WhatsApp: ${whatsappStatus.status}`}
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">WhatsApp</span>
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    whatsappStatus.conectado
+                      ? 'bg-green-500'
+                      : whatsappStatus.status === 'não configurada'
+                        ? 'bg-gray-400'
+                        : 'bg-red-500'
+                  }`}
+                />
+              </div>
+            )}
             {chatwootUrl && (
               <a
                 href={chatwootUrl}

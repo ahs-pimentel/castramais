@@ -22,6 +22,7 @@ export default function CadastroEntidadePage() {
     confirmPassword: '',
     cidade: '',
     bairro: '',
+    endereco: '',
     aceitaTermos: false,
   })
 
@@ -59,6 +60,7 @@ export default function CadastroEntidadePage() {
           password: form.password,
           cidade: form.cidade,
           bairro: form.bairro || null,
+          endereco: form.endereco || null,
         }),
       })
 
@@ -203,6 +205,17 @@ export default function CadastroEntidadePage() {
                   placeholder="Bairro específico"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Endereco completo (opcional)
+              </label>
+              <Input
+                value={form.endereco}
+                onChange={(e) => setForm({ ...form, endereco: e.target.value })}
+                placeholder="Rua, numero, complemento"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">

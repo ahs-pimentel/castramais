@@ -57,6 +57,7 @@ async function seed() {
         password VARCHAR(255) NOT NULL,
         cidade VARCHAR(100) NOT NULL,
         bairro VARCHAR(100),
+        endereco VARCHAR(255),
         ativo BOOLEAN DEFAULT true,
         "createdAt" TIMESTAMP DEFAULT NOW()
       )
@@ -154,6 +155,9 @@ async function seed() {
         END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'role') THEN
           ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'admin';
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'entidades' AND column_name = 'endereco') THEN
+          ALTER TABLE entidades ADD COLUMN endereco VARCHAR(255);
         END IF;
       END
       $$;

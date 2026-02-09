@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/pool'
 import { requireRole } from '@/lib/permissions'
+import { sanitizeInput } from '@/lib/sanitize'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 
@@ -48,6 +49,40 @@ export async function PATCH(
     return NextResponse.json(result.rows[0])
   } catch (error) {
     console.error('Erro ao atualizar entidade:', error)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+  }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { error } = await requireRole('admin')
+    if (error) return error
+
+    const { id } = await params
+    const body = await request.json()
+    const { nome, cnpj, responsavel, telefone, email, cidade, bairro, endereco } = body
+
+    if (!nome || !responsavel || !telefone || !email || !cidade) {
+      return NextResponse.json({ error: 'Campos obrigatórios não preenchidos' }, { status: 400 })
+    }
+
+    const result = await pool.query(
+      `UPDATE entidades SET nome = $1, cnpj = $2, responsavel = $3, telefone = $4, email = $5, cidade = $6, bairro = $7, endereco = $8
+       WHERE id = $9
+       RETURNING id, nome, cnpj, responsavel, telefone, email, cidade, bairro, endereco, ativo, "createdAt"`,
+      [sanitizeInput(nome), cnpj || null, sanitizeInput(responsavel), telefone.replace(/\D/g, ''), email.trim(), sanitizeInput(cidade, 100), bairro ? sanitizeInput(bairro, 100) : null, endereco ? sanitizeInput(endereco, 255) : null, id]
+    )
+
+    if (result.rows.length === 0) {
+      return NextResponse.json({ error: 'Entidade não encontrada' }, { status: 404 })
+    }
+
+    return NextResponse.json(result.rows[0])
+  } catch (error) {
+    console.error('Erro ao editar entidade:', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

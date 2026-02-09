@@ -64,7 +64,7 @@ export default function LandingPage() {
                 Cadastrar meu Pet
               </Link>
               <a
-                href="https://wa.me/5531975425424"
+                href="https://wa.me/553121812062"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-green-500 text-white font-semibold rounded-2xl hover:bg-green-600 transition-colors"
@@ -142,11 +142,11 @@ export default function LandingPage() {
 
           <div className="text-center mt-8">
             <a
-              href="https://wa.me/5531975425424"
+              href="https://wa.me/553121812062"
               className="inline-flex items-center gap-2 text-primary font-medium hover:underline"
             >
               <Phone className="w-4 h-4" />
-              Entre em contato para mais informações: (31) 97542-5424
+              Entre em contato para mais informações: (31) 2181-2062
             </a>
           </div>
         </div>
@@ -295,13 +295,13 @@ export default function LandingPage() {
               Cadastrar meu Pet
             </Link>
             <a
-              href="https://wa.me/5531975425424"
+              href="https://wa.me/553121812062"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-secondary font-semibold rounded-2xl hover:bg-gray-100 transition-colors"
             >
               <Phone className="w-5 h-5" />
-              (31) 97542-5424
+              (31) 2181-2062
             </a>
           </div>
         </div>

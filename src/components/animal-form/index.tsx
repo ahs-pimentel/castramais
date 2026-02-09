@@ -80,7 +80,7 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
     const entidadeId = e.target.value
     const entidade = entidades.find(ent => ent.id === entidadeId)
     if (entidade) {
-      const endereco = [entidade.bairro, entidade.cidade].filter(Boolean).join(' - ')
+      const endereco = entidade.endereco || [entidade.bairro, entidade.cidade].filter(Boolean).join(' - ')
       setFormData(prev => ({
         ...prev,
         localAgendamento: entidade.nome,

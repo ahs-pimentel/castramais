@@ -79,6 +79,7 @@ export interface Entidade {
   email: string
   cidade: string
   bairro?: string | null
+  endereco?: string | null
   ativo: boolean
   createdAt: string
 }
