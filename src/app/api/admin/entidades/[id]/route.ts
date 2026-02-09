@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/pool'
 import { requireRole } from '@/lib/permissions'
+import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
 
 export async function PATCH(
   request: NextRequest,
@@ -12,7 +14,23 @@ export async function PATCH(
 
     const { id } = await params
     const body = await request.json()
-    const { ativo } = body
+    const { ativo, resetPassword } = body
+
+    if (resetPassword) {
+      const novaSenha = crypto.randomBytes(6).toString('base64url')
+      const hash = await bcrypt.hash(novaSenha, 10)
+
+      const result = await pool.query(
+        'UPDATE entidades SET password = $1 WHERE id = $2 RETURNING id, nome',
+        [hash, id]
+      )
+
+      if (result.rows.length === 0) {
+        return NextResponse.json({ error: 'Entidade não encontrada' }, { status: 404 })
+      }
+
+      return NextResponse.json({ ...result.rows[0], novaSenha })
+    }
 
     if (typeof ativo !== 'boolean') {
       return NextResponse.json({ error: 'Campo ativo é obrigatório' }, { status: 400 })

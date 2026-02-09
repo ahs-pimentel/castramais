@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { Search, Phone, Mail, MapPin, Building2, Check, X, Loader2, FileDown, Trash2 } from 'lucide-react'
+import { Search, Phone, Mail, MapPin, Building2, Check, X, Loader2, FileDown, Trash2, KeyRound, Plus } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -17,6 +17,18 @@ export default function EntidadesPage() {
   const [busca, setBusca] = useState('')
   const [updating, setUpdating] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [resettingPassword, setResettingPassword] = useState<string | null>(null)
+  const [showForm, setShowForm] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [novaForm, setNovaForm] = useState({
+    nome: '',
+    cnpj: '',
+    responsavel: '',
+    telefone: '',
+    email: '',
+    cidade: '',
+    bairro: '',
+  })
 
   useEffect(() => {
     fetchEntidades()
@@ -74,6 +86,68 @@ export default function EntidadesPage() {
     }
   }
 
+  async function handleResetPassword(id: string, nome: string) {
+    if (!confirm(`Resetar a senha da entidade "${nome}"? Uma nova senha será gerada.`)) return
+    setResettingPassword(id)
+    try {
+      const res = await fetch(`/api/admin/entidades/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resetPassword: true }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        alert(`Nova senha para ${data.nome}:\n\n${data.novaSenha}\n\nAnote esta senha, ela não será exibida novamente.`)
+      } else {
+        const data = await res.json()
+        alert(data.error || 'Erro ao resetar senha')
+      }
+    } catch (error) {
+      console.error('Erro ao resetar senha:', error)
+      alert('Erro ao resetar senha')
+    } finally {
+      setResettingPassword(null)
+    }
+  }
+
+  async function criarEntidade(e: React.FormEvent) {
+    e.preventDefault()
+    if (!novaForm.nome.trim() || !novaForm.responsavel.trim() || !novaForm.telefone.trim() || !novaForm.email.trim() || !novaForm.cidade.trim()) return
+
+    setCreating(true)
+    try {
+      const res = await fetch('/api/admin/entidades', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nome: novaForm.nome,
+          cnpj: novaForm.cnpj || null,
+          responsavel: novaForm.responsavel,
+          telefone: novaForm.telefone,
+          email: novaForm.email,
+          cidade: novaForm.cidade,
+          bairro: novaForm.bairro || null,
+        }),
+      })
+
+      const data = await res.json()
+      if (res.ok) {
+        const { senhaGerada, ...entidade } = data
+        setEntidades([entidade, ...entidades])
+        setNovaForm({ nome: '', cnpj: '', responsavel: '', telefone: '', email: '', cidade: '', bairro: '' })
+        setShowForm(false)
+        alert(`Entidade criada com sucesso!\n\nEmail: ${entidade.email}\nSenha: ${senhaGerada}\n\nAnote esta senha, ela não será exibida novamente.`)
+      } else {
+        alert(data.error || 'Erro ao criar entidade')
+      }
+    } catch (error) {
+      console.error('Erro ao criar entidade:', error)
+      alert('Erro ao criar entidade')
+    } finally {
+      setCreating(false)
+    }
+  }
+
   const entidadesFiltradas = entidades.filter(
     (e) =>
       e.nome.toLowerCase().includes(busca.toLowerCase()) ||
@@ -118,16 +192,104 @@ export default function EntidadesPage() {
             )}
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => gerarPDFEntidades(entidadesFiltradas)}
-          disabled={entidadesFiltradas.length === 0}
-        >
-          <FileDown className="w-4 h-4 mr-2" />
-          Exportar PDF
-        </Button>
+        <div className="flex gap-2">
+          {role === 'admin' && (
+            <Button size="sm" onClick={() => setShowForm(!showForm)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Nova Entidade
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => gerarPDFEntidades(entidadesFiltradas)}
+            disabled={entidadesFiltradas.length === 0}
+          >
+            <FileDown className="w-4 h-4 mr-2" />
+            Exportar PDF
+          </Button>
+        </div>
       </div>
+
+      {showForm && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h2 className="font-semibold text-gray-900 mb-4">Nova Entidade</h2>
+          <form onSubmit={criarEntidade} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                id="nome"
+                label="Nome da Entidade *"
+                value={novaForm.nome}
+                onChange={(e) => setNovaForm(prev => ({ ...prev, nome: e.target.value }))}
+                placeholder="Ex: ONG Amigos dos Animais"
+              />
+              <Input
+                id="cnpj"
+                label="CNPJ"
+                value={novaForm.cnpj}
+                onChange={(e) => setNovaForm(prev => ({ ...prev, cnpj: e.target.value }))}
+                placeholder="Opcional"
+              />
+              <Input
+                id="responsavel"
+                label="Responsavel *"
+                value={novaForm.responsavel}
+                onChange={(e) => setNovaForm(prev => ({ ...prev, responsavel: e.target.value }))}
+                placeholder="Nome do responsavel"
+              />
+              <Input
+                id="telefone"
+                label="Telefone *"
+                value={novaForm.telefone}
+                onChange={(e) => setNovaForm(prev => ({ ...prev, telefone: e.target.value }))}
+                placeholder="(31) 99999-9999"
+              />
+              <Input
+                id="email"
+                label="Email *"
+                value={novaForm.email}
+                onChange={(e) => setNovaForm(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="email@entidade.org"
+              />
+              <Input
+                id="cidade"
+                label="Cidade *"
+                value={novaForm.cidade}
+                onChange={(e) => setNovaForm(prev => ({ ...prev, cidade: e.target.value }))}
+                placeholder="Ex: Barbacena"
+              />
+              <Input
+                id="bairro"
+                label="Bairro"
+                value={novaForm.bairro}
+                onChange={(e) => setNovaForm(prev => ({ ...prev, bairro: e.target.value }))}
+                placeholder="Opcional"
+              />
+            </div>
+            <p className="text-sm text-gray-500">
+              A senha sera gerada automaticamente e exibida apos o cadastro.
+            </p>
+            <div className="flex gap-3">
+              <Button type="submit" disabled={creating}>
+                {creating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Criando...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Criar Entidade
+                  </>
+                )}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
+                Cancelar
+              </Button>
+            </div>
+          </form>
+        </div>
+      )}
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -242,19 +404,36 @@ export default function EntidadesPage() {
                       </Button>
                     )}
                     {role === 'admin' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(entidade.id)}
-                        disabled={deleting === entidade.id}
-                        className="text-gray-400 hover:text-red-600 hover:bg-red-50"
-                      >
-                        {deleting === entidade.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="w-4 h-4" />
-                        )}
-                      </Button>
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleResetPassword(entidade.id, entidade.nome)}
+                          disabled={resettingPassword === entidade.id}
+                          className="text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+                          title="Resetar senha"
+                        >
+                          {resettingPassword === entidade.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <KeyRound className="w-4 h-4" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(entidade.id)}
+                          disabled={deleting === entidade.id}
+                          className="text-gray-400 hover:text-red-600 hover:bg-red-50"
+                          title="Excluir entidade"
+                        >
+                          {deleting === entidade.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </>
                     )}
                   </div>
                 </div>

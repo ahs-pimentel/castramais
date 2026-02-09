@@ -610,9 +610,9 @@ export default function CampanhasPage() {
               className="fixed inset-0 bg-black/50 transition-opacity"
               onClick={closeEditModal}
             />
-            <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
+            <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] min-h-0 flex flex-col">
               {/* Header */}
-              <div className="flex items-center justify-between p-6 pb-0">
+              <div className="flex items-center justify-between p-6 pb-0 flex-shrink-0">
                 <h2 className="text-lg font-semibold text-gray-900">
                   {editingCampanha.nome}
                 </h2>
@@ -625,7 +625,7 @@ export default function CampanhasPage() {
               </div>
 
               {/* Tabs */}
-              <div className="flex border-b border-gray-200 px-6 mt-4">
+              <div className="flex border-b border-gray-200 px-6 mt-4 flex-shrink-0">
                 <button
                   onClick={() => setModalTab('dados')}
                   className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
@@ -660,7 +660,7 @@ export default function CampanhasPage() {
               </div>
 
               {/* Conteúdo com scroll */}
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex-1 min-h-0 overflow-y-auto p-6">
                 {/* Aba Dados */}
                 {modalTab === 'dados' && (
                   <div className="space-y-4">
@@ -816,7 +816,7 @@ export default function CampanhasPage() {
 
               {/* Footer */}
               {modalTab === 'dados' && (
-                <div className="flex justify-end gap-3 p-6 border-t border-gray-100">
+                <div className="flex justify-end gap-3 p-6 border-t border-gray-100 flex-shrink-0">
                   <Button variant="outline" onClick={closeEditModal}>
                     Cancelar
                   </Button>
@@ -836,7 +836,7 @@ export default function CampanhasPage() {
                 </div>
               )}
               {modalTab === 'entidades' && (
-                <div className="flex justify-end p-6 border-t border-gray-100">
+                <div className="flex justify-end p-6 border-t border-gray-100 flex-shrink-0">
                   <Button variant="outline" onClick={closeEditModal}>
                     Fechar
                   </Button>

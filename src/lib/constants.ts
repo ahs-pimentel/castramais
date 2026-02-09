@@ -5,7 +5,7 @@ export const RATE_LIMITS = {
   OTP_PER_CPF: { max: 5, windowMs: 15 * 60 * 1000 },
   OTP_PER_IP: { max: 20, windowMs: 15 * 60 * 1000 },
   LOGIN_PER_EMAIL: { max: 5, windowMs: 15 * 60 * 1000 },
-  CADASTRO_PER_IP: { max: 3, windowMs: 60 * 60 * 1000 },
+  CADASTRO_PER_IP: { max: 30, windowMs: 60 * 60 * 1000 },
 } as const
 
 // Limites de animais
