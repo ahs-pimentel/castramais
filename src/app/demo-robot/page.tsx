@@ -273,7 +273,7 @@ export default function DemoRobotPage() {
                     </Button>
                     <Button
                       onClick={handleStop}
-                      variant="destructive"
+                      variant="danger"
                     >
                       Parar
                     </Button>
