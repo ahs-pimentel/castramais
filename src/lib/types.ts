@@ -139,7 +139,7 @@ export interface CreateAnimalDTO {
   peso?: number
   idadeAnos?: number
   idadeMeses?: number
-  registroSinpatinhas: string
+  registroSinpatinhas?: string
   observacoes?: string
   campanhaId?: string
   tutorId?: string

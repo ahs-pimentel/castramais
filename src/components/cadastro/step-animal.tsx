@@ -25,7 +25,6 @@ interface StepAnimalProps {
     idadeMeses: string
     observacoes: string
     campanhaId: string
-    registroSinpatinhas: string
     tutorNome: string
   }
   campanhas: Campanha[]
@@ -155,7 +154,6 @@ export function StepAnimal({ formData, campanhas, errors, onChange }: StepAnimal
         <div className="p-4 bg-gray-50 rounded-xl space-y-2">
           <p className="text-sm font-medium text-gray-700">Resumo do cadastro:</p>
           <div className="text-sm text-gray-600 space-y-1">
-            <p><span className="font-medium">RG Animal:</span> {formData.registroSinpatinhas}</p>
             <p><span className="font-medium">Tutor:</span> {formData.tutorNome}</p>
             <p><span className="font-medium">Pet:</span> {formData.nome || '(não informado)'} - {formData.especie === 'cachorro' ? 'Cachorro' : 'Gato'}</p>
             {formData.campanhaId && (

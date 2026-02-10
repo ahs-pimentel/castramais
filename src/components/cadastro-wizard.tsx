@@ -7,21 +7,16 @@ import {
   ChevronLeft,
   Check,
   Loader2,
-  QrCode,
   User,
   PawPrint,
 } from 'lucide-react'
 import { Button } from './ui/button'
-import { OnboardingSinpatinhas } from './onboarding-sinpatinhas'
-import { StepRegistro } from './cadastro/step-registro'
 import { StepTutor } from './cadastro/step-tutor'
 import { StepAnimal } from './cadastro/step-animal'
 import { CreateAnimalDTO, Campanha } from '@/lib/types'
 import { cleanCPF, validateCPF } from '@/lib/utils'
-import { validarSinpatinhas, getMensagemErroSinpatinhas } from '@/lib/sanitize'
 
 const STEPS = [
-  { id: 'registro', title: 'RG Animal', icon: QrCode },
   { id: 'tutor', title: 'Tutor', icon: User },
   { id: 'animal', title: 'Pet', icon: PawPrint },
 ]
@@ -29,7 +24,6 @@ const STEPS = [
 export function CadastroWizard() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(0)
-  const [showOnboarding, setShowOnboarding] = useState(true)
   const [loading, setLoading] = useState(false)
   const [searchingTutor, setSearchingTutor] = useState(false)
   const [tutorFound, setTutorFound] = useState<boolean | null>(null)
@@ -44,7 +38,6 @@ export function CadastroWizard() {
   }, [])
 
   const [formData, setFormData] = useState({
-    registroSinpatinhas: '',
     tutorId: '',
     tutorCpf: '',
     tutorNome: '',
@@ -128,14 +121,6 @@ export function CadastroWizard() {
     const newErrors: Record<string, string> = {}
 
     if (step === 0) {
-      // Validar formato do RG Animal apenas se fornecido
-      if (formData.registroSinpatinhas.trim() && !validarSinpatinhas(formData.registroSinpatinhas)) {
-        const msg = getMensagemErroSinpatinhas(formData.registroSinpatinhas)
-        newErrors.registroSinpatinhas = msg || 'Formato inválido. Use: BR-000000000000'
-      }
-    }
-
-    if (step === 1) {
       if (!formData.tutorCpf.trim()) {
         newErrors.tutorCpf = 'CPF é obrigatório'
       } else if (!validateCPF(formData.tutorCpf)) {
@@ -156,7 +141,7 @@ export function CadastroWizard() {
       }
     }
 
-    if (step === 2) {
+    if (step === 1) {
       if (!formData.nome.trim()) newErrors.nome = 'Nome do pet é obrigatório'
       if (!formData.raca.trim()) newErrors.raca = 'Raça é obrigatória'
       if (!formData.campanhaId) newErrors.campanhaId = 'Selecione uma campanha'
@@ -197,7 +182,6 @@ export function CadastroWizard() {
         peso: formData.peso ? parseFloat(formData.peso) : undefined,
         idadeAnos: formData.idadeAnos ? parseInt(formData.idadeAnos) : undefined,
         idadeMeses: formData.idadeMeses ? parseInt(formData.idadeMeses) : undefined,
-        registroSinpatinhas: formData.registroSinpatinhas,
         observacoes: formData.observacoes || undefined,
         campanhaId: formData.campanhaId,
       }
@@ -235,15 +219,6 @@ export function CadastroWizard() {
     } finally {
       setLoading(false)
     }
-  }
-
-  if (showOnboarding) {
-    return (
-      <OnboardingSinpatinhas
-        onComplete={() => setShowOnboarding(false)}
-        onSkip={() => setShowOnboarding(false)}
-      />
-    )
   }
 
   return (
@@ -293,17 +268,8 @@ export function CadastroWizard() {
         })}
       </div>
 
-      {/* Step 1: Registro SinPatinhas */}
+      {/* Step 1: Tutor */}
       {currentStep === 0 && (
-        <StepRegistro
-          registroSinpatinhas={formData.registroSinpatinhas}
-          error={errors.registroSinpatinhas}
-          onChange={handleChange}
-        />
-      )}
-
-      {/* Step 2: Tutor */}
-      {currentStep === 1 && (
         <StepTutor
           formData={formData}
           errors={errors}
@@ -314,8 +280,8 @@ export function CadastroWizard() {
         />
       )}
 
-      {/* Step 3: Animal */}
-      {currentStep === 2 && (
+      {/* Step 2: Animal */}
+      {currentStep === 1 && (
         <StepAnimal
           formData={formData}
           campanhas={campanhas}

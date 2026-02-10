@@ -132,9 +132,14 @@ O cadastro do seu pet *${nomePet}* foi realizado com sucesso!
 
 📋 *Status:* Aguardando agendamento
 
+⚠️ *IMPORTANTE:* Para realizar o agendamento da castração, você precisará do *RG Animal (SinPatinhas)* do seu pet. É um cadastro gratuito do Governo Federal.
+
+📝 *Cadastre no SinPatinhas:*
+👉 sinpatinhas.mma.gov.br
+
 Você será notificado assim que houver uma campanha de castração disponível na sua região.
 
-Enquanto isso, mantenha seus dados atualizados no app.
+Enquanto isso, mantenha seus dados atualizados e providencie o RG Animal.
 
 🐾 Castra+MG - Castração é um gesto de amor!`
 
@@ -181,6 +186,9 @@ O cadastro do seu pet *${nomePet}* foi realizado com sucesso!
 Infelizmente, as vagas para castração na sua cidade já foram preenchidas nesta campanha. Mas não se preocupe!
 
 ✅ Seu cadastro está salvo e você será notificado assim que surgirem novas vagas ou uma nova campanha for aberta em sua região.
+
+📝 *ATENÇÃO:* Para o agendamento, você precisará do *RG Animal (SinPatinhas)* do seu pet. Aproveite este período de espera para cadastrá-lo gratuitamente:
+👉 sinpatinhas.mma.gov.br
 
 Fique atento ao seu WhatsApp!
 
