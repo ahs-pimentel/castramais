@@ -17,10 +17,10 @@ export function StepRegistro({ registroSinpatinhas, error, onChange }: StepRegis
             <QrCode className="w-8 h-8 text-primary" />
           </div>
           <h2 className="text-xl font-semibold text-gray-900">
-            Informe o RG Animal
+            Informe o RG Animal (opcional)
           </h2>
           <p className="text-gray-500">
-            Digite o número de registro do SinPatinhas do pet
+            Se você já tem o RG Animal do SinPatinhas, digite abaixo. Caso contrário, pode pular esta etapa.
           </p>
         </div>
 
@@ -28,7 +28,7 @@ export function StepRegistro({ registroSinpatinhas, error, onChange }: StepRegis
           <Input
             id="registroSinpatinhas"
             name="registroSinpatinhas"
-            label="Número do RG Animal (SinPatinhas)"
+            label="Número do RG Animal - SinPatinhas (opcional)"
             value={registroSinpatinhas}
             onChange={onChange}
             placeholder="BR-000000000000"

@@ -74,7 +74,7 @@ async function seed() {
         peso DECIMAL(5,2),
         "idadeAnos" INTEGER,
         "idadeMeses" INTEGER,
-        "registroSinpatinhas" VARCHAR(100) UNIQUE NOT NULL,
+        "registroSinpatinhas" VARCHAR(100) UNIQUE,
         status VARCHAR(20) DEFAULT 'pendente',
         "dataAgendamento" DATE,
         "horarioAgendamento" VARCHAR(20),
@@ -159,6 +159,8 @@ async function seed() {
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'entidades' AND column_name = 'endereco') THEN
           ALTER TABLE entidades ADD COLUMN endereco VARCHAR(255);
         END IF;
+        -- Tornar registroSinpatinhas opcional (permitir NULL)
+        ALTER TABLE animais ALTER COLUMN "registroSinpatinhas" DROP NOT NULL;
       END
       $$;
     `)

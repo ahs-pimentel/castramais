@@ -589,7 +589,7 @@ export default function EntidadeDashboardPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">RG Animal (SinPatinhas)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">RG Animal - SinPatinhas (opcional)</label>
                   <Input value={petForm.registroSinpatinhas} onChange={e => setPetForm({ ...petForm, registroSinpatinhas: e.target.value })} placeholder="BR-000000000000" />
                 </div>
 

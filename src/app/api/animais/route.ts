@@ -117,13 +117,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { tutorId, tutor: tutorData, registroSinpatinhas, campanhaId, ...animalData } = body
 
-    if (!registroSinpatinhas) {
-      return NextResponse.json({ error: 'Número do RG Animal (SinPatinhas) é obrigatório' }, { status: 400 })
-    }
-
-    const existingAnimal = await buscarAnimalPorRG(registroSinpatinhas)
-    if (existingAnimal) {
-      return NextResponse.json({ error: 'Este RG Animal já está cadastrado no sistema' }, { status: 409 })
+    // Verificar se RG já existe (se fornecido)
+    if (registroSinpatinhas) {
+      const existingAnimal = await buscarAnimalPorRG(registroSinpatinhas)
+      if (existingAnimal) {
+        return NextResponse.json({ error: 'Este RG Animal já está cadastrado no sistema' }, { status: 409 })
+      }
     }
 
     // Verificar limite de animais por tutor

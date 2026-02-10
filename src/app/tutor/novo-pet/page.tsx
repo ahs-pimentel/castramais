@@ -77,10 +77,8 @@ export default function NovoPetPage() {
   const validate = () => {
     const newErrors: Record<string, string> = {}
 
-    // Validacao do RG Animal (SinPatinhas)
-    if (!formData.registroSinpatinhas.trim()) {
-      newErrors.registroSinpatinhas = 'RG Animal é obrigatório'
-    } else if (!validarSinpatinhas(formData.registroSinpatinhas)) {
+    // Validacao do RG Animal (SinPatinhas) - apenas se fornecido
+    if (formData.registroSinpatinhas.trim() && !validarSinpatinhas(formData.registroSinpatinhas)) {
       const msg = getMensagemErroSinpatinhas(formData.registroSinpatinhas)
       newErrors.registroSinpatinhas = msg || 'Formato de RG Animal inválido'
     }
@@ -249,7 +247,7 @@ export default function NovoPetPage() {
             </div>
             <div>
               <h2 className="font-semibold text-gray-900">RG Animal</h2>
-              <p className="text-xs text-gray-500">Número do SinPatinhas</p>
+              <p className="text-xs text-gray-500">Número do SinPatinhas (opcional)</p>
             </div>
           </div>
 

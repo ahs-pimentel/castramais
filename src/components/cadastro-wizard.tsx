@@ -128,9 +128,8 @@ export function CadastroWizard() {
     const newErrors: Record<string, string> = {}
 
     if (step === 0) {
-      if (!formData.registroSinpatinhas.trim()) {
-        newErrors.registroSinpatinhas = 'O número do RG Animal é obrigatório'
-      } else if (!validarSinpatinhas(formData.registroSinpatinhas)) {
+      // Validar formato do RG Animal apenas se fornecido
+      if (formData.registroSinpatinhas.trim() && !validarSinpatinhas(formData.registroSinpatinhas)) {
         const msg = getMensagemErroSinpatinhas(formData.registroSinpatinhas)
         newErrors.registroSinpatinhas = msg || 'Formato inválido. Use: BR-000000000000'
       }
