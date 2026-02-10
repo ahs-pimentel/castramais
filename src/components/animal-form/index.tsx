@@ -152,17 +152,17 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
   const validate = () => {
     const newErrors: Record<string, string> = {}
 
-    if (!formData.nome.trim()) newErrors.nome = 'Nome \u00e9 obrigat\u00f3rio'
-    if (!formData.raca.trim()) newErrors.raca = 'Ra\u00e7a \u00e9 obrigat\u00f3ria'
-    if (!formData.tutorCpf.trim()) newErrors.tutorCpf = 'CPF \u00e9 obrigat\u00f3rio'
-    else if (!validateCPF(formData.tutorCpf)) newErrors.tutorCpf = 'CPF inv\u00e1lido'
+    if (!formData.nome.trim()) newErrors.nome = 'Nome é obrigatório'
+    if (!formData.raca.trim()) newErrors.raca = 'Raça é obrigatória'
+    if (!formData.tutorCpf.trim()) newErrors.tutorCpf = 'CPF é obrigatório'
+    else if (!validateCPF(formData.tutorCpf)) newErrors.tutorCpf = 'CPF inválido'
 
     if (tutorFound === false) {
-      if (!formData.tutorNome.trim()) newErrors.tutorNome = 'Nome do tutor \u00e9 obrigat\u00f3rio'
-      if (!formData.tutorTelefone.trim()) newErrors.tutorTelefone = 'Telefone \u00e9 obrigat\u00f3rio'
-      if (!formData.tutorEndereco.trim()) newErrors.tutorEndereco = 'Endere\u00e7o \u00e9 obrigat\u00f3rio'
-      if (!formData.tutorCidade.trim()) newErrors.tutorCidade = 'Cidade \u00e9 obrigat\u00f3ria'
-      if (!formData.tutorBairro.trim()) newErrors.tutorBairro = 'Bairro \u00e9 obrigat\u00f3rio'
+      if (!formData.tutorNome.trim()) newErrors.tutorNome = 'Nome do tutor é obrigatório'
+      if (!formData.tutorTelefone.trim()) newErrors.tutorTelefone = 'Telefone é obrigatório'
+      if (!formData.tutorEndereco.trim()) newErrors.tutorEndereco = 'Endereço é obrigatório'
+      if (!formData.tutorCidade.trim()) newErrors.tutorCidade = 'Cidade é obrigatória'
+      if (!formData.tutorBairro.trim()) newErrors.tutorBairro = 'Bairro é obrigatório'
     }
 
     setErrors(newErrors)
@@ -253,7 +253,7 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
     { value: '', label: 'Sem campanha' },
     ...campanhas.map(c => ({
       value: c.id,
-      label: `${c.nome} \u2014 ${c.cidade}${!c.ativa ? ' (inativa)' : ''}`,
+      label: `${c.nome} — ${c.cidade}${!c.ativa ? ' (inativa)' : ''}`,
     })),
   ]
 
@@ -318,7 +318,7 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
               <Input
                 id="dataRealizacao"
                 name="dataRealizacao"
-                label="Data de Realiza\u00e7\u00e3o"
+                label="Data de Realização"
                 type="date"
                 value={formData.dataRealizacao}
                 onChange={handleChange}
@@ -340,7 +340,7 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
                   <Input
                     id="horarioAgendamento"
                     name="horarioAgendamento"
-                    label="Hor\u00e1rio"
+                    label="Horário"
                     type="time"
                     value={formData.horarioAgendamento}
                     onChange={handleChange}
@@ -348,7 +348,7 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
                   />
                   <div className="w-full">
                     <label htmlFor="entidadeSelect" className="block text-sm font-medium text-gray-700 mb-1">
-                      Local de Castra\u00e7\u00e3o (Entidade)
+                      Local de Castração (Entidade)
                     </label>
                     <select
                       id="entidadeSelect"
@@ -359,7 +359,7 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
                       <option value="">Selecione uma entidade...</option>
                       {entidades.map(ent => (
                         <option key={ent.id} value={ent.id}>
-                          {ent.nome} \u2014 {[ent.bairro, ent.cidade].filter(Boolean).join(', ')}
+                          {ent.nome} — {[ent.bairro, ent.cidade].filter(Boolean).join(', ')}
                         </option>
                       ))}
                     </select>
@@ -367,7 +367,7 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
                   <Input
                     id="enderecoAgendamento"
                     name="enderecoAgendamento"
-                    label="Endere\u00e7o do Local"
+                    label="Endereço do Local"
                     value={formData.enderecoAgendamento}
                     onChange={handleChange}
                     placeholder="Preenchido automaticamente pela entidade"
@@ -401,7 +401,7 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
           ) : mode === 'create' ? (
             'Cadastrar'
           ) : (
-            'Salvar altera\u00e7\u00f5es'
+            'Salvar alterações'
           )}
         </Button>
       </div>

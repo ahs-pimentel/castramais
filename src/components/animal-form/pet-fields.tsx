@@ -11,7 +11,7 @@ const especieOptions = [
 
 const sexoOptions = [
   { value: 'macho', label: 'Macho' },
-  { value: 'femea', label: 'F\u00eamea' },
+  { value: 'femea', label: 'Fêmea' },
 ]
 
 interface PetFieldsProps {
@@ -55,7 +55,7 @@ export function PetFields({ formData, errors, onChange, registroSinpatinhas, sho
         <Select
           id="especie"
           name="especie"
-          label="Esp\u00e9cie"
+          label="Espécie"
           value={formData.especie}
           onChange={onChange}
           options={especieOptions}
@@ -63,7 +63,7 @@ export function PetFields({ formData, errors, onChange, registroSinpatinhas, sho
         <Input
           id="raca"
           name="raca"
-          label="Ra\u00e7a"
+          label="Raça"
           value={formData.raca}
           onChange={onChange}
           error={errors.raca}
@@ -106,7 +106,7 @@ export function PetFields({ formData, errors, onChange, registroSinpatinhas, sho
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Observa\u00e7\u00f5es m\u00e9dicas
+          Observações médicas
         </label>
         <textarea
           id="observacoes"
