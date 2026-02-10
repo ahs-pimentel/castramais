@@ -148,23 +148,28 @@ export async function verificarConexaoWhatsApp(): Promise<{
   }
 
   try {
-    const res = await fetch(
-      `${EVOLUTION_API_URL}/instance/connectionState/${EVOLUTION_INSTANCE}`,
-      {
-        headers: {
-          'apikey': EVOLUTION_API_KEY,
-        },
-      }
-    )
+    const url = `${EVOLUTION_API_URL}/instance/connectionState/${EVOLUTION_INSTANCE}`
+    console.log('[Evolution] Verificando conexão:', { url, instance: EVOLUTION_INSTANCE })
+
+    const res = await fetch(url, {
+      headers: {
+        'apikey': EVOLUTION_API_KEY,
+      },
+    })
+
+    console.log('[Evolution] Response status:', res.status, res.statusText)
 
     if (res.ok) {
       const data = await res.json()
+      console.log('[Evolution] Response data:', JSON.stringify(data, null, 2))
       return {
         conectado: data.state === 'open',
         estado: data.state,
       }
     }
 
+    const errorText = await res.text()
+    console.error('[Evolution] Erro na resposta:', { status: res.status, body: errorText })
     return { conectado: false }
   } catch (error) {
     console.error('[Evolution] Erro ao verificar conexão:', error)

@@ -20,6 +20,8 @@ export async function GET() {
 
   const { conectado, estado } = await verificarConexaoWhatsApp()
 
+  console.log('[WhatsApp Status API] Resultado:', { conectado, estado })
+
   return NextResponse.json({
     status: estado || 'desconhecido',
     conectado,
