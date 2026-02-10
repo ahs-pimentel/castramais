@@ -162,9 +162,10 @@ export async function verificarConexaoWhatsApp(): Promise<{
     if (res.ok) {
       const data = await res.json()
       console.log('[Evolution] Response data:', JSON.stringify(data, null, 2))
+      const state = data.instance?.state || data.state
       return {
-        conectado: data.state === 'open',
-        estado: data.state,
+        conectado: state === 'open',
+        estado: state,
       }
     }
 
