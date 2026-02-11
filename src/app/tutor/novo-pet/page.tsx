@@ -6,15 +6,12 @@ import Link from 'next/link'
 import {
   ArrowLeft,
   PawPrint,
-  QrCode,
   Cat,
   Dog,
   Loader2,
   CheckCircle2,
   HelpCircle,
-  ExternalLink
 } from 'lucide-react'
-import { validarSinpatinhas, getMensagemErroSinpatinhas } from '@/lib/sanitize'
 
 interface Campanha {
   id: string
@@ -34,7 +31,6 @@ export default function NovoPetPage() {
   const [campanhas, setCampanhas] = useState<Campanha[]>([])
 
   const [formData, setFormData] = useState({
-    registroSinpatinhas: '',
     nome: '',
     especie: 'cachorro',
     raca: '',
@@ -76,12 +72,6 @@ export default function NovoPetPage() {
 
   const validate = () => {
     const newErrors: Record<string, string> = {}
-
-    // Validacao do RG Animal (SinPatinhas) - apenas se fornecido
-    if (formData.registroSinpatinhas.trim() && !validarSinpatinhas(formData.registroSinpatinhas)) {
-      const msg = getMensagemErroSinpatinhas(formData.registroSinpatinhas)
-      newErrors.registroSinpatinhas = msg || 'Formato de RG Animal inválido'
-    }
 
     if (!formData.nome.trim()) {
       newErrors.nome = 'Nome do pet é obrigatório'
@@ -237,48 +227,6 @@ export default function NovoPetPage() {
               <p className="text-red-500 text-sm mt-1">{errors.campanhaId}</p>
             )}
           </div>
-        </div>
-
-        {/* RG Animal */}
-        <div className="bg-white rounded-2xl shadow-sm p-5 space-y-4">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-              <QrCode className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h2 className="font-semibold text-gray-900">RG Animal</h2>
-              <p className="text-xs text-gray-500">Número do SinPatinhas (opcional)</p>
-            </div>
-          </div>
-
-          <div>
-            <input
-              type="text"
-              name="registroSinpatinhas"
-              value={formData.registroSinpatinhas}
-              onChange={handleChange}
-              placeholder="BR-000000000000"
-              className={`w-full text-center text-lg font-mono px-4 py-3 border-2 rounded-xl focus:outline-none transition-colors ${
-                errors.registroSinpatinhas
-                  ? 'border-red-300 focus:border-red-500'
-                  : 'border-gray-200 focus:border-primary'
-              }`}
-            />
-            {errors.registroSinpatinhas && (
-              <p className="text-red-500 text-sm mt-1">{errors.registroSinpatinhas}</p>
-            )}
-          </div>
-
-          <a
-            href="https://sinpatinhas.mma.gov.br"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 text-sm text-primary hover:underline"
-          >
-            <HelpCircle className="w-4 h-4" />
-            Não tem? Cadastre grátis no SinPatinhas
-            <ExternalLink className="w-3 h-3" />
-          </a>
         </div>
 
         {/* Dados do Pet */}

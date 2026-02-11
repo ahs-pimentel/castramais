@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/pool'
 import { extrairToken, verificarToken } from '@/lib/tutor-auth'
 import { notificarCadastroPet, notificarListaEspera } from '@/lib/notifications'
-import { validarSinpatinhas, getMensagemErroSinpatinhas } from '@/lib/sanitize'
 import { verificarDisponibilidadeVaga } from '@/lib/services/vagas'
 import { v4 as uuidv4 } from 'uuid'
-import { buscarAnimalPorRG, buscarTutorNotificacao } from '@/lib/repositories/animal-repository'
+import { buscarTutorNotificacao } from '@/lib/repositories/animal-repository'
 import { verificarLimitesAnimais } from '@/lib/repositories/tutor-repository'
 
 export async function POST(request: NextRequest) {
@@ -31,7 +30,6 @@ export async function POST(request: NextRequest) {
       peso,
       idadeAnos,
       idadeMeses,
-      registroSinpatinhas,
       observacoes,
       campanhaId,
     } = body
@@ -39,12 +37,6 @@ export async function POST(request: NextRequest) {
     // Validações
     if (!nome?.trim()) {
       return NextResponse.json({ error: 'Nome do pet é obrigatório' }, { status: 400 })
-    }
-
-    // Validação do formato do código SinPatinhas (se fornecido)
-    if (registroSinpatinhas?.trim() && !validarSinpatinhas(registroSinpatinhas)) {
-      const mensagemErro = getMensagemErroSinpatinhas(registroSinpatinhas)
-      return NextResponse.json({ error: mensagemErro || 'Código SinPatinhas inválido' }, { status: 400 })
     }
     if (!especie || !['cachorro', 'gato'].includes(especie)) {
       return NextResponse.json({ error: 'Espécie inválida' }, { status: 400 })
@@ -54,17 +46,6 @@ export async function POST(request: NextRequest) {
     }
     if (!raca?.trim()) {
       return NextResponse.json({ error: 'Raça é obrigatória' }, { status: 400 })
-    }
-
-    // Verificar se RG já existe (se fornecido)
-    if (registroSinpatinhas?.trim()) {
-      const existeAnimal = await buscarAnimalPorRG(registroSinpatinhas)
-      if (existeAnimal) {
-        return NextResponse.json(
-          { error: 'Este RG Animal já está cadastrado no sistema' },
-          { status: 409 }
-        )
-      }
     }
 
     // Verificar limite de animais por tutor
@@ -105,7 +86,7 @@ export async function POST(request: NextRequest) {
         peso ? parseFloat(peso) : null,
         idadeAnos ? parseInt(idadeAnos) : null,
         idadeMeses ? parseInt(idadeMeses) : null,
-        registroSinpatinhas?.trim() || null,
+        null, // registroSinpatinhas - preenchido apenas por admin/entidade
         observacoes?.trim() || null,
         payload.tutorId,
         campanhaId || null,
