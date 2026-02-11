@@ -56,10 +56,6 @@ export default function EntidadeDashboardPage() {
     idadeAnos: '', idadeMeses: '', registroSinpatinhas: '', observacoes: '', campanhaId: ''
   })
 
-  // Edit state
-  const [editAnimal, setEditAnimal] = useState<Animal | null>(null)
-  const [editForm, setEditForm] = useState({ nome: '', especie: '', raca: '', peso: '', observacoes: '' })
-  const [editSaving, setEditSaving] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem('entidade_token')
@@ -201,45 +197,6 @@ export default function EntidadeDashboardPage() {
     }
   }
 
-  function openEdit(animal: Animal) {
-    setEditAnimal(animal)
-    setEditForm({
-      nome: animal.nome,
-      especie: animal.especie,
-      raca: animal.raca,
-      peso: animal.peso?.toString() || '',
-      observacoes: '',
-    })
-  }
-
-  async function handleEdit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!editAnimal) return
-    setEditSaving(true)
-    const token = localStorage.getItem('entidade_token')
-    try {
-      const res = await fetch(`/api/entidade/animais/${editAnimal.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          nome: editForm.nome,
-          especie: editForm.especie,
-          raca: editForm.raca,
-          peso: editForm.peso ? parseFloat(editForm.peso) : null,
-          observacoes: editForm.observacoes || null,
-        }),
-      })
-      if (res.ok) {
-        setEditAnimal(null)
-        fetchData(token!)
-      }
-    } catch (error) {
-      console.error('Erro ao editar:', error)
-    } finally {
-      setEditSaving(false)
-    }
-  }
-
   const animaisFiltrados = animais.filter((animal) => {
     const matchBusca =
       animal.nome.toLowerCase().includes(busca.toLowerCase()) ||
@@ -365,7 +322,11 @@ export default function EntidadeDashboardPage() {
           ) : (
             <div className="divide-y divide-gray-100">
               {animaisFiltrados.map((animal) => (
-                <div key={animal.id} className="p-4 hover:bg-gray-50 transition-colors">
+                <div
+                  key={animal.id}
+                  className="p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                  onClick={() => router.push(`/entidade/animal/${animal.id}`)}
+                >
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3">
                       <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
@@ -373,7 +334,7 @@ export default function EntidadeDashboardPage() {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="font-medium text-gray-900">{animal.nome}</h3>
+                          <h3 className="font-medium text-gray-900 hover:text-primary hover:underline">{animal.nome}</h3>
                           <Badge className={statusConfig[animal.status]?.className}>
                             {statusConfig[animal.status]?.label}
                           </Badge>
@@ -384,15 +345,19 @@ export default function EntidadeDashboardPage() {
                         </p>
                         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
                           <span className="text-gray-700 font-medium">{animal.tutor.nome}</span>
-                          <a
-                            href={`https://wa.me/55${animal.tutor.telefone.replace(/\D/g, '')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 text-primary hover:underline"
+                          <span
+                            onClick={e => e.stopPropagation()}
                           >
-                            <Phone className="w-3.5 h-3.5" />
-                            {formatPhone(animal.tutor.telefone)}
-                          </a>
+                            <a
+                              href={`https://wa.me/55${animal.tutor.telefone.replace(/\D/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-primary hover:underline"
+                            >
+                              <Phone className="w-3.5 h-3.5" />
+                              {formatPhone(animal.tutor.telefone)}
+                            </a>
+                          </span>
                           <span className="flex items-center gap-1 text-gray-500">
                             <MapPin className="w-3.5 h-3.5" />
                             {animal.tutor.bairro}
@@ -415,7 +380,7 @@ export default function EntidadeDashboardPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => openEdit(animal)}
+                        onClick={(e) => { e.stopPropagation(); router.push(`/entidade/animal/${animal.id}`) }}
                         className="text-gray-500 hover:text-blue-600"
                       >
                         <Pencil className="w-4 h-4" />
@@ -621,49 +586,6 @@ export default function EntidadeDashboardPage() {
         </div>
       )}
 
-      {/* Modal Edição */}
-      {editAnimal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-md shadow-xl">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">Editar Animal</h2>
-              <button onClick={() => setEditAnimal(null)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={handleEdit} className="p-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
-                <Input value={editForm.nome} onChange={e => setEditForm({ ...editForm, nome: e.target.value })} required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Raça</label>
-                <Input value={editForm.raca} onChange={e => setEditForm({ ...editForm, raca: e.target.value })} required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Peso (kg)</label>
-                <Input type="number" step="0.1" value={editForm.peso} onChange={e => setEditForm({ ...editForm, peso: e.target.value })} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Observações</label>
-                <textarea
-                  value={editForm.observacoes}
-                  onChange={e => setEditForm({ ...editForm, observacoes: e.target.value })}
-                  rows={2}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none"
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={() => setEditAnimal(null)}>Cancelar</Button>
-                <Button type="submit" disabled={editSaving}>
-                  {editSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                  Salvar
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

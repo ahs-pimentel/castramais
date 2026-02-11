@@ -72,15 +72,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
     const animalAnterior = existingResult.rows[0]
 
-    // Validar RG Animal obrigatório para agendamento
-    if (body.status === 'agendado') {
-      const registroAtual = body.registroSinpatinhas || animalAnterior.registroSinpatinhas
-      if (!registroAtual) {
-        return NextResponse.json({
-          error: 'O RG Animal (SinPatinhas) é obrigatório para realizar o agendamento. O tutor deve cadastrar o pet no site sinpatinhas.mma.gov.br antes de agendar.'
-        }, { status: 400 })
-      }
-    }
 
     const updateFields = []
     const values = []
