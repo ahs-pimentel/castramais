@@ -8,11 +8,27 @@ import { enviarWhatsApp, enviarEmail } from './senders'
 export type TipoMensagem = 'whatsapp' | 'email'
 export type StatusMensagem = 'pendente' | 'enviando' | 'enviado' | 'falhou'
 
+// Verifica se já existe mensagem pendente/enviando para o mesmo destino (evita duplicatas)
+async function jaEnfileirado(tipo: string, destino: string): Promise<boolean> {
+  const result = await pool.query(
+    `SELECT 1 FROM fila_mensagens
+     WHERE tipo = $1 AND destino = $2 AND status IN ('pendente', 'enviando')
+     AND "criadoEm" > NOW() - INTERVAL '5 minutes'
+     LIMIT 1`,
+    [tipo, destino]
+  )
+  return result.rows.length > 0
+}
+
 export async function enfileirarWhatsApp(
   telefone: string,
   mensagem: string,
   prioridade: number = 0
 ): Promise<void> {
+  if (await jaEnfileirado('whatsapp', telefone)) {
+    console.log(`[Fila] WhatsApp para ${telefone} já está na fila, ignorando duplicata`)
+    return
+  }
   await pool.query(
     `INSERT INTO fila_mensagens (tipo, destino, mensagem, prioridade)
      VALUES ('whatsapp', $1, $2, $3)`,
@@ -26,6 +42,10 @@ export async function enfileirarEmail(
   mensagem: string,
   prioridade: number = 0
 ): Promise<void> {
+  if (await jaEnfileirado('email', email)) {
+    console.log(`[Fila] Email para ${email} já está na fila, ignorando duplicata`)
+    return
+  }
   await pool.query(
     `INSERT INTO fila_mensagens (tipo, destino, assunto, mensagem, prioridade)
      VALUES ('email', $1, $2, $3, $4)`,

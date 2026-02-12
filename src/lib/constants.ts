@@ -28,7 +28,8 @@ export const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || ''
 
 // Fila de mensagens (anti-bloqueio WhatsApp)
 export const QUEUE_CONFIG = {
-  DELAY_MS: 3000,                       // 3s entre mensagens
+  DELAY_MIN_MS: 10000,                  // 10s delay mínimo entre mensagens
+  DELAY_MAX_MS: 30000,                  // 30s delay máximo (aleatório)
   MAX_RETRIES: 3,
   RETRY_DELAYS: [30000, 120000, 300000], // 30s, 2min, 5min
   CLEANUP_DAYS: 7,

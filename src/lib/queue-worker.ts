@@ -21,8 +21,9 @@ export function iniciarWorker(): void {
     try {
       const enviou = await processarProximaMensagem()
       if (enviou) {
-        // Se enviou algo, espera o delay antes de processar a próxima
-        await new Promise(resolve => setTimeout(resolve, QUEUE_CONFIG.DELAY_MS))
+        // Delay aleatório entre mensagens (simula comportamento humano)
+        const delay = QUEUE_CONFIG.DELAY_MIN_MS + Math.random() * (QUEUE_CONFIG.DELAY_MAX_MS - QUEUE_CONFIG.DELAY_MIN_MS)
+        await new Promise(resolve => setTimeout(resolve, delay))
       }
     } catch (error) {
       console.error('[Worker] Erro ao processar fila:', error)

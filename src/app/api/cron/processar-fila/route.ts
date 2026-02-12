@@ -20,8 +20,9 @@ export async function GET(request: NextRequest) {
       const enviou = await processarProximaMensagem()
       if (!enviou) break
       processadas++
-      // Delay entre mensagens
-      await new Promise(resolve => setTimeout(resolve, QUEUE_CONFIG.DELAY_MS))
+      // Delay aleatório entre mensagens (anti-bloqueio)
+      const delay = QUEUE_CONFIG.DELAY_MIN_MS + Math.random() * (QUEUE_CONFIG.DELAY_MAX_MS - QUEUE_CONFIG.DELAY_MIN_MS)
+      await new Promise(resolve => setTimeout(resolve, delay))
     }
 
     // Limpeza de mensagens antigas (aproveita a chamada)

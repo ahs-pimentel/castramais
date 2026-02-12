@@ -12,6 +12,23 @@ export { enviarWhatsApp, enviarEmail }
 // NOTIFICAÇÕES DO PROGRAMA CASTRA+ (via fila)
 // ============================================
 
+// Humanização: variações de texto para evitar mensagens idênticas (anti-spam)
+const SAUDACOES = ['Olá', 'Oi', 'E aí', 'Oie']
+const FECHAMENTOS = [
+  '🐾 Castra+MG - Castração é um gesto de amor!',
+  '🐾 Castra+MG - Cuide de quem te ama!',
+  '🐾 Castra+MG - Seu pet agradece!',
+  '🐾 Castra+MG - Juntos pelo bem-estar animal!',
+]
+
+function saudacao(): string {
+  return SAUDACOES[Math.floor(Math.random() * SAUDACOES.length)]
+}
+
+function fechamento(): string {
+  return FECHAMENTOS[Math.floor(Math.random() * FECHAMENTOS.length)]
+}
+
 // Helper: enfileira WhatsApp + email (se disponível)
 async function enfileirarNotificacao(
   telefone: string,
@@ -37,7 +54,7 @@ export async function notificarCadastroPet(
   const emoji = especie.toLowerCase() === 'canino' ? '🐕' : '🐱'
   const mensagem = `*Castra+MG* ${emoji}
 
-Olá, *${nomeTutor}*!
+${saudacao()}, *${nomeTutor}*!
 
 O cadastro do seu pet *${nomePet}* foi realizado com sucesso!
 
@@ -52,7 +69,7 @@ Você será notificado assim que houver uma campanha de castração disponível 
 
 Enquanto isso, mantenha seus dados atualizados e providencie o RG Animal.
 
-🐾 Castra+MG - Castração é um gesto de amor!`
+${fechamento()}`
 
   await enfileirarNotificacao(telefone, email, mensagem, `Cadastro de ${nomePet} realizado - Castra+MG`)
 }
@@ -70,7 +87,7 @@ export async function notificarListaEspera(
 
   const mensagem = `*Castra+MG* ${emoji}
 
-Olá, *${nomeTutor}*!
+${saudacao()}, *${nomeTutor}*!
 
 O cadastro do seu pet *${nomePet}* foi realizado com sucesso!
 
@@ -86,7 +103,7 @@ Infelizmente, as vagas para castração na sua cidade já foram preenchidas nest
 
 Fique atento ao seu WhatsApp!
 
-🐾 Castra+MG - Castração é um gesto de amor!`
+${fechamento()}`
 
   await enfileirarNotificacao(telefone, email, mensagem, `${nomePet} na Lista de Espera - Castra+MG`)
 }
@@ -111,7 +128,7 @@ export async function notificarAgendamento(
 
   const mensagem = `*Castra+MG* - AGENDAMENTO CONFIRMADO! ✅
 
-Olá, *${nomeTutor}*!
+${saudacao()}, *${nomeTutor}*!
 
 Seu pet *${nomePet}* ${emoji} foi agendado para castração!
 
@@ -135,7 +152,7 @@ O responsável deve ser maior de idade e permanecer no local até a liberação 
 ❌ *Não poderá comparecer?*
 Avise com pelo menos 24h de antecedência pelo WhatsApp.
 
-🐾 Castra+MG - Castração é um gesto de amor!`
+${fechamento()}`
 
   await enfileirarNotificacao(telefone, email, mensagem, `Agendamento Confirmado: ${nomePet} - Castra+MG`)
 }
@@ -155,7 +172,7 @@ export async function notificarLembrete24h(
 
   const mensagem = `*Castra+MG* - LEMBRETE! ⏰
 
-Olá, *${nomeTutor}*!
+${saudacao()}, *${nomeTutor}*!
 
 A castração de *${nomePet}* ${emoji} é *AMANHÃ*!
 
@@ -167,7 +184,8 @@ A castração de *${nomePet}* ${emoji} é *AMANHÃ*!
 - Documento de identificação
 - Manter o animal calmo na noite anterior
 
-Contamos com você! 🐾`
+Contamos com você! 🐾
+${fechamento()}`
 
   await enfileirarNotificacao(telefone, email, mensagem, `LEMBRETE: Castração de ${nomePet} é amanhã! - Castra+MG`)
 }
@@ -184,7 +202,7 @@ export async function notificarCastracaoRealizada(
 
   const mensagem = `*Castra+MG* - CASTRAÇÃO REALIZADA! ✅
 
-Olá, *${nomeTutor}*!
+${saudacao()}, *${nomeTutor}*!
 
 A castração de *${nomePet}* ${emoji} foi realizada com sucesso!
 
@@ -203,7 +221,7 @@ A castração de *${nomePet}* ${emoji} foi realizada com sucesso!
 
 Obrigado por participar do programa Castra+MG!
 
-🐾 Castração é um gesto de amor!`
+${fechamento()}`
 
   await enfileirarNotificacao(telefone, email, mensagem, `Castração de ${nomePet} realizada! - Castra+MG`)
 }
@@ -218,7 +236,7 @@ export async function notificarCancelamento(
 ): Promise<void> {
   const mensagem = `*Castra+MG* - Agendamento Cancelado
 
-Olá, *${nomeTutor}*!
+${saudacao()}, *${nomeTutor}*!
 
 O agendamento de castração de *${nomePet}* foi cancelado.
 
@@ -227,7 +245,7 @@ Você pode realizar um novo cadastro quando houver disponibilidade de vagas.
 
 Em caso de dúvidas, entre em contato pelo WhatsApp.
 
-🐾 Castra+MG`
+${fechamento()}`
 
   await enfileirarNotificacao(telefone, email, mensagem, `Agendamento cancelado: ${nomePet} - Castra+MG`)
 }
@@ -241,7 +259,7 @@ export async function notificarCadastroAdmin(
 ): Promise<void> {
   const mensagem = `*Castra+MG* 🐾
 
-Olá, *${nomeTutor}*!
+${saudacao()}, *${nomeTutor}*!
 
 Informamos que seu pet *${nomePet}* foi cadastrado no programa *Castra+MG* de castração gratuita!
 
@@ -256,7 +274,7 @@ Você receberá notificações sobre o agendamento pelo WhatsApp.
 
 Em caso de dúvidas, responda esta mensagem.
 
-🐾 Castra+MG - Castração é um gesto de amor!`
+${fechamento()}`
 
   await enfileirarNotificacao(telefone, email, mensagem, `Seu pet ${nomePet} foi cadastrado - Castra+MG`)
 }
