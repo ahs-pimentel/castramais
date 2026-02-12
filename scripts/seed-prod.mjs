@@ -139,6 +139,28 @@ async function seed() {
       )
     `)
 
+    // Tabela fila_mensagens (fila de envio WhatsApp/Email anti-bloqueio)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS fila_mensagens (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        tipo VARCHAR(20) NOT NULL,
+        destino VARCHAR(50) NOT NULL,
+        assunto VARCHAR(255),
+        mensagem TEXT NOT NULL,
+        prioridade INTEGER DEFAULT 0,
+        status VARCHAR(20) DEFAULT 'pendente',
+        tentativas INTEGER DEFAULT 0,
+        max_tentativas INTEGER DEFAULT 3,
+        erro TEXT,
+        "criadoEm" TIMESTAMP DEFAULT NOW(),
+        "enviadoEm" TIMESTAMP,
+        "proximaTentativa" TIMESTAMP DEFAULT NOW()
+      )
+    `)
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_fila_status ON fila_mensagens(status, prioridade DESC, "proximaTentativa")
+    `)
+
     // Migrações para bancos existentes
     await pool.query(`
       DO $$

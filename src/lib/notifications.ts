@@ -1,118 +1,29 @@
 // Serviço de notificações - WhatsApp (Evolution API) e Email
+// Notificações são enfileiradas para evitar bloqueio do WhatsApp.
+// OTP (código de verificação) é enviado diretamente por ser time-sensitive.
 
-import { EVOLUTION_API_URL, EVOLUTION_API_KEY, EVOLUTION_INSTANCE } from './constants'
+import { enfileirarWhatsApp, enfileirarEmail } from './message-queue'
+import { enviarWhatsApp, enviarEmail } from './senders'
 
-const SMTP_HOST = process.env.SMTP_HOST || ''
-const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587')
-const SMTP_USER = process.env.SMTP_USER || ''
-const SMTP_PASS = process.env.SMTP_PASS || ''
-const SMTP_FROM = process.env.SMTP_FROM || 'noreply@castramais.com.br'
+// Re-exportar para manter compatibilidade com imports existentes
+export { enviarWhatsApp, enviarEmail }
 
-interface SendWhatsAppResult {
-  success: boolean
-  error?: string
-}
+// ============================================
+// NOTIFICAÇÕES DO PROGRAMA CASTRA+ (via fila)
+// ============================================
 
-interface SendEmailResult {
-  success: boolean
-  error?: string
-}
-
-export async function enviarWhatsApp(
+// Helper: enfileira WhatsApp + email (se disponível)
+async function enfileirarNotificacao(
   telefone: string,
-  mensagem: string
-): Promise<SendWhatsAppResult> {
-  try {
-    // Formatar telefone para o padrão do WhatsApp (55 + DDD + número)
-    let numero = telefone.replace(/\D/g, '')
-    if (!numero.startsWith('55')) {
-      numero = '55' + numero
-    }
-
-    const response = await fetch(
-      `${EVOLUTION_API_URL}/message/sendText/${EVOLUTION_INSTANCE}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          apikey: EVOLUTION_API_KEY,
-        },
-        body: JSON.stringify({
-          number: numero,
-          text: mensagem,
-        }),
-      }
-    )
-
-    if (!response.ok) {
-      const error = await response.text()
-      console.error('[WhatsApp] Erro ao enviar:', error)
-      return { success: false, error: 'Falha ao enviar WhatsApp' }
-    }
-
-    console.log(`[WhatsApp] Mensagem enviada para ${numero}`)
-    return { success: true }
-  } catch (error) {
-    console.error('[WhatsApp] Erro:', error)
-    return { success: false, error: 'Erro de conexão com WhatsApp' }
+  email: string | null,
+  mensagem: string,
+  assuntoEmail: string,
+  prioridade: number = 0
+): Promise<void> {
+  await enfileirarWhatsApp(telefone, mensagem, prioridade)
+  if (email) {
+    await enfileirarEmail(email, assuntoEmail, mensagem.replace(/\*/g, ''), prioridade)
   }
-}
-
-export async function enviarEmail(
-  email: string,
-  assunto: string,
-  mensagem: string
-): Promise<SendEmailResult> {
-  try {
-    // Usar nodemailer dinamicamente para não quebrar se não estiver instalado
-    const nodemailer = await import('nodemailer')
-
-    const transporter = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      secure: SMTP_PORT === 465,
-      auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS,
-      },
-    })
-
-    await transporter.sendMail({
-      from: SMTP_FROM,
-      to: email,
-      subject: assunto,
-      text: mensagem,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="color: #F97316; margin: 0;">Castra<span style="color: #333;">+</span></h1>
-          </div>
-          <div style="background: #f9f9f9; border-radius: 10px; padding: 20px;">
-            ${mensagem.replace(/[&<>"']/g, (c: string) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#x27;'}[c] || c)).replace(/\n/g, '<br>')}
-          </div>
-          <div style="text-align: center; margin-top: 20px; color: #999; font-size: 12px;">
-            Este é um email automático do sistema Castra+
-          </div>
-        </div>
-      `,
-    })
-
-    console.log(`[Email] Mensagem enviada para ${email}`)
-    return { success: true }
-  } catch (error) {
-    console.error('[Email] Erro:', error)
-    return { success: false, error: 'Erro ao enviar email' }
-  }
-}
-
-// ============================================
-// NOTIFICAÇÕES DO PROGRAMA CASTRA+
-// ============================================
-
-interface NotificacaoResult {
-  success: boolean
-  metodo?: 'whatsapp' | 'email'
-  error?: string
 }
 
 // Notificação: Cadastro de Pet realizado
@@ -122,7 +33,7 @@ export async function notificarCadastroPet(
   nomeTutor: string,
   nomePet: string,
   especie: string
-): Promise<NotificacaoResult> {
+): Promise<void> {
   const emoji = especie.toLowerCase() === 'canino' ? '🐕' : '🐱'
   const mensagem = `*Castra+MG* ${emoji}
 
@@ -143,24 +54,7 @@ Enquanto isso, mantenha seus dados atualizados e providencie o RG Animal.
 
 🐾 Castra+MG - Castração é um gesto de amor!`
 
-  const result = await enviarWhatsApp(telefone, mensagem)
-  if (result.success) {
-    return { success: true, metodo: 'whatsapp' }
-  }
-
-  // Fallback para email
-  if (email) {
-    const emailResult = await enviarEmail(
-      email,
-      `Cadastro de ${nomePet} realizado - Castra+MG`,
-      mensagem.replace(/\*/g, '')
-    )
-    if (emailResult.success) {
-      return { success: true, metodo: 'email' }
-    }
-  }
-
-  return { success: false, error: 'Não foi possível enviar notificação' }
+  await enfileirarNotificacao(telefone, email, mensagem, `Cadastro de ${nomePet} realizado - Castra+MG`)
 }
 
 // Notificação: Pet cadastrado em Lista de Espera (vagas esgotadas)
@@ -171,7 +65,7 @@ export async function notificarListaEspera(
   nomePet: string,
   especie: string,
   posicaoFila: number
-): Promise<NotificacaoResult> {
+): Promise<void> {
   const emoji = especie.toLowerCase() === 'canino' ? '🐕' : '🐱'
 
   const mensagem = `*Castra+MG* ${emoji}
@@ -194,23 +88,7 @@ Fique atento ao seu WhatsApp!
 
 🐾 Castra+MG - Castração é um gesto de amor!`
 
-  const result = await enviarWhatsApp(telefone, mensagem)
-  if (result.success) {
-    return { success: true, metodo: 'whatsapp' }
-  }
-
-  if (email) {
-    const emailResult = await enviarEmail(
-      email,
-      `${nomePet} na Lista de Espera - Castra+MG`,
-      mensagem.replace(/\*/g, '')
-    )
-    if (emailResult.success) {
-      return { success: true, metodo: 'email' }
-    }
-  }
-
-  return { success: false, error: 'Não foi possível enviar notificação' }
+  await enfileirarNotificacao(telefone, email, mensagem, `${nomePet} na Lista de Espera - Castra+MG`)
 }
 
 // Notificação: Animal agendado para castração
@@ -224,7 +102,7 @@ export async function notificarAgendamento(
   horario: string,
   local: string,
   endereco: string
-): Promise<NotificacaoResult> {
+): Promise<void> {
   const emoji = especie.toLowerCase() === 'canino' ? '🐕' : '🐱'
   const jejum = especie.toLowerCase() === 'canino' ? '6 horas' : '4 horas'
   const transporte = especie.toLowerCase() === 'canino'
@@ -259,23 +137,7 @@ Avise com pelo menos 24h de antecedência pelo WhatsApp.
 
 🐾 Castra+MG - Castração é um gesto de amor!`
 
-  const result = await enviarWhatsApp(telefone, mensagem)
-  if (result.success) {
-    return { success: true, metodo: 'whatsapp' }
-  }
-
-  if (email) {
-    const emailResult = await enviarEmail(
-      email,
-      `Agendamento Confirmado: ${nomePet} - Castra+MG`,
-      mensagem.replace(/\*/g, '')
-    )
-    if (emailResult.success) {
-      return { success: true, metodo: 'email' }
-    }
-  }
-
-  return { success: false, error: 'Não foi possível enviar notificação' }
+  await enfileirarNotificacao(telefone, email, mensagem, `Agendamento Confirmado: ${nomePet} - Castra+MG`)
 }
 
 // Notificação: Lembrete 24h antes
@@ -287,7 +149,7 @@ export async function notificarLembrete24h(
   especie: string,
   horario: string,
   local: string
-): Promise<NotificacaoResult> {
+): Promise<void> {
   const emoji = especie.toLowerCase() === 'canino' ? '🐕' : '🐱'
   const jejum = especie.toLowerCase() === 'canino' ? '6 horas' : '4 horas'
 
@@ -307,23 +169,7 @@ A castração de *${nomePet}* ${emoji} é *AMANHÃ*!
 
 Contamos com você! 🐾`
 
-  const result = await enviarWhatsApp(telefone, mensagem)
-  if (result.success) {
-    return { success: true, metodo: 'whatsapp' }
-  }
-
-  if (email) {
-    const emailResult = await enviarEmail(
-      email,
-      `LEMBRETE: Castração de ${nomePet} é amanhã! - Castra+MG`,
-      mensagem.replace(/\*/g, '')
-    )
-    if (emailResult.success) {
-      return { success: true, metodo: 'email' }
-    }
-  }
-
-  return { success: false, error: 'Não foi possível enviar notificação' }
+  await enfileirarNotificacao(telefone, email, mensagem, `LEMBRETE: Castração de ${nomePet} é amanhã! - Castra+MG`)
 }
 
 // Notificação: Castração realizada com sucesso
@@ -333,7 +179,7 @@ export async function notificarCastracaoRealizada(
   nomeTutor: string,
   nomePet: string,
   especie: string
-): Promise<NotificacaoResult> {
+): Promise<void> {
   const emoji = especie.toLowerCase() === 'canino' ? '🐕' : '🐱'
 
   const mensagem = `*Castra+MG* - CASTRAÇÃO REALIZADA! ✅
@@ -359,23 +205,7 @@ Obrigado por participar do programa Castra+MG!
 
 🐾 Castração é um gesto de amor!`
 
-  const result = await enviarWhatsApp(telefone, mensagem)
-  if (result.success) {
-    return { success: true, metodo: 'whatsapp' }
-  }
-
-  if (email) {
-    const emailResult = await enviarEmail(
-      email,
-      `Castração de ${nomePet} realizada! - Castra+MG`,
-      mensagem.replace(/\*/g, '')
-    )
-    if (emailResult.success) {
-      return { success: true, metodo: 'email' }
-    }
-  }
-
-  return { success: false, error: 'Não foi possível enviar notificação' }
+  await enfileirarNotificacao(telefone, email, mensagem, `Castração de ${nomePet} realizada! - Castra+MG`)
 }
 
 // Notificação: Agendamento cancelado
@@ -385,7 +215,7 @@ export async function notificarCancelamento(
   nomeTutor: string,
   nomePet: string,
   motivo?: string
-): Promise<NotificacaoResult> {
+): Promise<void> {
   const mensagem = `*Castra+MG* - Agendamento Cancelado
 
 Olá, *${nomeTutor}*!
@@ -399,23 +229,7 @@ Em caso de dúvidas, entre em contato pelo WhatsApp.
 
 🐾 Castra+MG`
 
-  const result = await enviarWhatsApp(telefone, mensagem)
-  if (result.success) {
-    return { success: true, metodo: 'whatsapp' }
-  }
-
-  if (email) {
-    const emailResult = await enviarEmail(
-      email,
-      `Agendamento cancelado: ${nomePet} - Castra+MG`,
-      mensagem.replace(/\*/g, '')
-    )
-    if (emailResult.success) {
-      return { success: true, metodo: 'email' }
-    }
-  }
-
-  return { success: false, error: 'Não foi possível enviar notificação' }
+  await enfileirarNotificacao(telefone, email, mensagem, `Agendamento cancelado: ${nomePet} - Castra+MG`)
 }
 
 // Notificação: Cadastro feito pelo admin (orientar tutor a acessar /tutor)
@@ -424,7 +238,7 @@ export async function notificarCadastroAdmin(
   email: string | null,
   nomeTutor: string,
   nomePet: string
-): Promise<NotificacaoResult> {
+): Promise<void> {
   const mensagem = `*Castra+MG* 🐾
 
 Olá, *${nomeTutor}*!
@@ -444,27 +258,12 @@ Em caso de dúvidas, responda esta mensagem.
 
 🐾 Castra+MG - Castração é um gesto de amor!`
 
-  const result = await enviarWhatsApp(telefone, mensagem)
-  if (result.success) {
-    return { success: true, metodo: 'whatsapp' }
-  }
-
-  if (email) {
-    const emailResult = await enviarEmail(
-      email,
-      `Seu pet ${nomePet} foi cadastrado - Castra+MG`,
-      mensagem.replace(/\*/g, '')
-    )
-    if (emailResult.success) {
-      return { success: true, metodo: 'email' }
-    }
-  }
-
-  return { success: false, error: 'Não foi possível enviar notificação' }
+  await enfileirarNotificacao(telefone, email, mensagem, `Seu pet ${nomePet} foi cadastrado - Castra+MG`)
 }
 
 // ============================================
-// CÓDIGO DE VERIFICAÇÃO (OTP)
+// CÓDIGO DE VERIFICAÇÃO (OTP) - ENVIO DIRETO
+// OTP é time-sensitive (5min), não passa pela fila
 // ============================================
 
 export async function enviarCodigoVerificacao(
@@ -475,14 +274,12 @@ export async function enviarCodigoVerificacao(
 ): Promise<{ success: boolean; metodo: 'whatsapp' | 'email'; error?: string }> {
   const mensagem = `*Castra+* - Seu código de verificação é:\n\n*${codigo}*\n\nEste código expira em 5 minutos.`
 
-  // Tentar WhatsApp primeiro (se for a preferência)
   if (preferencia === 'whatsapp') {
     const whatsappResult = await enviarWhatsApp(telefone, mensagem)
     if (whatsappResult.success) {
       return { success: true, metodo: 'whatsapp' }
     }
 
-    // Se WhatsApp falhar e tiver email, tentar email
     if (email) {
       const emailResult = await enviarEmail(
         email,
@@ -497,7 +294,6 @@ export async function enviarCodigoVerificacao(
     return { success: false, metodo: 'whatsapp', error: 'Não foi possível enviar o código' }
   }
 
-  // Se preferência for email
   if (email) {
     const emailResult = await enviarEmail(
       email,
@@ -509,7 +305,6 @@ export async function enviarCodigoVerificacao(
     }
   }
 
-  // Se email falhar, tentar WhatsApp
   const whatsappResult = await enviarWhatsApp(telefone, mensagem)
   if (whatsappResult.success) {
     return { success: true, metodo: 'whatsapp' }

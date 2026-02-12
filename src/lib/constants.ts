@@ -25,3 +25,11 @@ export const JWT_EXPIRY = {
 export const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL || ''
 export const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY || ''
 export const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || ''
+
+// Fila de mensagens (anti-bloqueio WhatsApp)
+export const QUEUE_CONFIG = {
+  DELAY_MS: 3000,                       // 3s entre mensagens
+  MAX_RETRIES: 3,
+  RETRY_DELAYS: [30000, 120000, 300000], // 30s, 2min, 5min
+  CLEANUP_DAYS: 7,
+} as const
