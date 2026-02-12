@@ -5,7 +5,6 @@ import { notificarCadastroPet, notificarListaEspera } from '@/lib/notifications'
 import { verificarDisponibilidadeVaga } from '@/lib/services/vagas'
 import { v4 as uuidv4 } from 'uuid'
 import { buscarTutorNotificacao } from '@/lib/repositories/animal-repository'
-import { verificarLimitesAnimais } from '@/lib/repositories/tutor-repository'
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,12 +45,6 @@ export async function POST(request: NextRequest) {
     }
     if (!raca?.trim()) {
       return NextResponse.json({ error: 'Raça é obrigatória' }, { status: 400 })
-    }
-
-    // Verificar limite de animais por tutor
-    const limites = await verificarLimitesAnimais(payload.tutorId, campanhaId)
-    if (!limites.ok) {
-      return NextResponse.json({ error: limites.erro }, { status: 400 })
     }
 
     // Buscar dados do tutor para notificação e verificação de vagas

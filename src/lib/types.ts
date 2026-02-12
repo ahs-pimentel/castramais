@@ -21,6 +21,8 @@ export interface Campanha {
   nome: string
   cidade: string
   uf: string
+  endereco?: string | null
+  bairro?: string | null
   dataInicio: string | null
   dataFim: string | null
   dataDescricao: string | null

@@ -95,6 +95,8 @@ async function seed() {
         nome VARCHAR(255) NOT NULL,
         cidade VARCHAR(100) NOT NULL,
         uf VARCHAR(2) DEFAULT 'MG',
+        endereco VARCHAR(255),
+        bairro VARCHAR(100),
         "dataInicio" DATE,
         "dataFim" DATE,
         "dataDescricao" VARCHAR(255),

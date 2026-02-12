@@ -5,7 +5,6 @@ import { notificarCadastroAdmin } from '@/lib/notifications'
 import { verificarDisponibilidadeVaga } from '@/lib/services/vagas'
 import { getEntidadeJwtSecret } from '@/lib/jwt-secrets'
 import { buscarAnimalPorRG, buscarTutorNotificacao } from '@/lib/repositories/animal-repository'
-import { verificarLimitesAnimais } from '@/lib/repositories/tutor-repository'
 import { verificarEntidadeVinculada } from '@/lib/repositories/campanha-repository'
 
 export async function POST(request: NextRequest) {
@@ -98,12 +97,6 @@ export async function POST(request: NextRequest) {
       }
     } else {
       return NextResponse.json({ error: 'CPF do tutor é obrigatório' }, { status: 400 })
-    }
-
-    // Verificar limite de animais por tutor
-    const limites = await verificarLimitesAnimais(tutorId, campanhaId)
-    if (!limites.ok) {
-      return NextResponse.json({ error: limites.erro }, { status: 400 })
     }
 
     // Check vacancy

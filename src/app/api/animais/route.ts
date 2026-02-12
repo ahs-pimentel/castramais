@@ -3,7 +3,6 @@ import { pool } from '@/lib/pool'
 import { requireRole } from '@/lib/permissions'
 import { notificarCadastroAdmin } from '@/lib/notifications'
 import { buscarAnimalPorRG, buscarTutorNotificacao } from '@/lib/repositories/animal-repository'
-import { verificarLimitesAnimais } from '@/lib/repositories/tutor-repository'
 
 export async function GET(request: NextRequest) {
   const { error } = await requireRole('admin', 'assistente')
@@ -122,15 +121,6 @@ export async function POST(request: NextRequest) {
       const existingAnimal = await buscarAnimalPorRG(registroSinpatinhas)
       if (existingAnimal) {
         return NextResponse.json({ error: 'Este RG Animal já está cadastrado no sistema' }, { status: 409 })
-      }
-    }
-
-    // Verificar limite de animais por tutor
-    const checkTutorId = tutorId || (tutorData ? null : null)
-    if (checkTutorId) {
-      const limites = await verificarLimitesAnimais(checkTutorId, campanhaId)
-      if (!limites.ok) {
-        return NextResponse.json({ error: limites.erro }, { status: 400 })
       }
     }
 

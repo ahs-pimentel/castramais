@@ -8,12 +8,6 @@ export const RATE_LIMITS = {
   CADASTRO_PER_IP: { max: 30, windowMs: 60 * 60 * 1000 },
 } as const
 
-// Limites de animais
-export const ANIMAL_LIMITS = {
-  PER_TUTOR_TOTAL: 10,
-  PER_TUTOR_PER_CAMPAIGN: 5,
-} as const
-
 // OTP
 export const OTP_CONFIG = {
   LENGTH: 6,

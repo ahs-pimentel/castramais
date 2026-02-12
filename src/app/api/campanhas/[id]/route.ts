@@ -39,6 +39,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       nome: 'nome',
       cidade: 'cidade',
       uf: 'uf',
+      endereco: 'endereco',
+      bairro: 'bairro',
       dataInicio: '"dataInicio"',
       dataFim: '"dataFim"',
       dataDescricao: '"dataDescricao"',

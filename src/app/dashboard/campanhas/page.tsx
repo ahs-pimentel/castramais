@@ -52,6 +52,8 @@ export default function CampanhasPage() {
     nome: '',
     cidade: '',
     uf: '',
+    endereco: '',
+    bairro: '',
     dataInicio: '',
     dataFim: '',
     dataDescricao: '',
@@ -63,6 +65,8 @@ export default function CampanhasPage() {
     nome: '',
     cidade: '',
     uf: 'MG',
+    endereco: '',
+    bairro: '',
     dataInicio: '',
     dataFim: '',
     dataDescricao: '',
@@ -157,6 +161,8 @@ export default function CampanhasPage() {
           nome: '',
           cidade: '',
           uf: 'MG',
+          endereco: '',
+          bairro: '',
           dataInicio: '',
           dataFim: '',
           dataDescricao: '',
@@ -216,6 +222,8 @@ export default function CampanhasPage() {
       nome: campanha.nome,
       cidade: campanha.cidade,
       uf: campanha.uf,
+      endereco: campanha.endereco || '',
+      bairro: campanha.bairro || '',
       dataInicio: campanha.dataInicio?.split('T')[0] || '',
       dataFim: campanha.dataFim?.split('T')[0] || '',
       dataDescricao: campanha.dataDescricao || '',
@@ -362,6 +370,22 @@ export default function CampanhasPage() {
                 onChange={(e) => setNovaForm(prev => ({ ...prev, limite: e.target.value }))}
                 placeholder="200"
               />
+              <div className="md:col-span-2">
+                <Input
+                  id="endereco"
+                  label="Endereço do local de castração"
+                  value={novaForm.endereco}
+                  onChange={(e) => setNovaForm(prev => ({ ...prev, endereco: e.target.value }))}
+                  placeholder="Ex: Rua das Flores, 123"
+                />
+              </div>
+              <Input
+                id="bairro"
+                label="Bairro"
+                value={novaForm.bairro}
+                onChange={(e) => setNovaForm(prev => ({ ...prev, bairro: e.target.value }))}
+                placeholder="Ex: Centro"
+              />
               <Input
                 id="dataInicio"
                 label="Data de Inicio"
@@ -463,7 +487,7 @@ export default function CampanhasPage() {
                           <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
                             <span className="flex items-center gap-1">
                               <MapPin className="w-3.5 h-3.5" />
-                              {campanha.cidade}/{campanha.uf}
+                              {campanha.endereco ? `${campanha.endereco}, ` : ''}{campanha.bairro ? `${campanha.bairro} - ` : ''}{campanha.cidade}/{campanha.uf}
                             </span>
                             {campanha.dataDescricao && (
                               <span className="flex items-center gap-1">
@@ -686,6 +710,20 @@ export default function CampanhasPage() {
                         onChange={(e) => setEditForm(prev => ({ ...prev, uf: e.target.value }))}
                       />
                     </div>
+                    <Input
+                      id="edit-endereco"
+                      label="Endereço do local de castração"
+                      value={editForm.endereco}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, endereco: e.target.value }))}
+                      placeholder="Ex: Rua das Flores, 123"
+                    />
+                    <Input
+                      id="edit-bairro"
+                      label="Bairro"
+                      value={editForm.bairro}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, bairro: e.target.value }))}
+                      placeholder="Ex: Centro"
+                    />
                     <Input
                       id="edit-limite"
                       label="Limite de vagas"
