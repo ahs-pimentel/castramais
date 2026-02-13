@@ -152,6 +152,9 @@ O responsável deve ser maior de idade e permanecer no local até a liberação 
 ❌ *Não poderá comparecer?*
 Avise com pelo menos 24h de antecedência pelo WhatsApp.
 
+💬 *Dúvidas?* Fale conosco:
+👉 wa.me/553121812062
+
 ${fechamento()}`
 
   await enfileirarNotificacao(telefone, email, mensagem, `Agendamento Confirmado: ${nomePet} - Castra+MG`)
