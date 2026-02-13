@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/pool'
 import { requireRole } from '@/lib/permissions'
 import {
+  gerarMensagemAgendamento,
   notificarAgendamento,
   notificarCastracaoRealizada,
   notificarCancelamento
@@ -102,13 +103,29 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     const animalAtualizado = result.rows[0]
 
-    // Enviar notificações baseadas na mudança de status
+    // Notificações baseadas na mudança de status
+    let whatsappData = null
+
     if (animalAnterior.tutor_telefone && body.status && body.status !== animalAnterior.status) {
       const especieNotif = animalAtualizado.especie === 'cachorro' ? 'canino' : 'felino'
 
-      // Status: agendado → Notificar agendamento
+      // Status: agendado → Gerar mensagem para WhatsApp Web + enviar email
       if (body.status === 'agendado' && animalAtualizado.dataAgendamento) {
         const dataFormatada = new Date(animalAtualizado.dataAgendamento).toLocaleDateString('pt-BR')
+        const mensagem = gerarMensagemAgendamento(
+          animalAnterior.tutor_nome,
+          animalAtualizado.nome,
+          especieNotif,
+          dataFormatada,
+          animalAtualizado.horarioAgendamento || 'A confirmar',
+          animalAtualizado.localAgendamento || 'A confirmar',
+          animalAtualizado.enderecoAgendamento || 'A confirmar'
+        )
+        whatsappData = {
+          telefone: animalAnterior.tutor_telefone,
+          mensagem,
+        }
+        // Envia apenas email automaticamente
         notificarAgendamento(
           animalAnterior.tutor_telefone,
           animalAnterior.tutor_email,
@@ -145,7 +162,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    return NextResponse.json(animalAtualizado)
+    return NextResponse.json({ ...animalAtualizado, whatsappData })
   } catch (error) {
     console.error('Erro ao atualizar animal:', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })

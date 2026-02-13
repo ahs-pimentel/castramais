@@ -1,4 +1,8 @@
 import type { Metadata, Viewport } from 'next'
+import { TutorManutencao } from '@/components/tutor-manutencao'
+
+// Ativar/desativar modo de manutenção do portal do tutor
+const MANUTENCAO_ATIVA = true
 
 export const metadata: Metadata = {
   title: 'Castra+ | Acompanhe seu Pet',
@@ -26,7 +30,7 @@ export default function TutorLayout({
 }) {
   return (
     <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white">
-      {children}
+      {MANUTENCAO_ATIVA ? <TutorManutencao /> : children}
     </div>
   )
 }

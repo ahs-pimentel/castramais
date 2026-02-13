@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/pool'
 import jwt from 'jsonwebtoken'
 import { getEntidadeJwtSecret } from '@/lib/jwt-secrets'
-import { notificarAgendamento } from '@/lib/notifications'
+import { gerarMensagemAgendamento, notificarAgendamento } from '@/lib/notifications'
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -140,9 +140,25 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const animalAtualizado = result.rows[0]
 
     // Notificar tutor se status mudou para agendado
+    let whatsappData = null
+
     if (body.status === 'agendado' && animalAnterior.status !== 'agendado' && animalAnterior.tutor_telefone) {
       const especieNotif = animalAtualizado.especie === 'cachorro' ? 'canino' : 'felino'
       const dataFormatada = new Date(animalAtualizado.dataAgendamento).toLocaleDateString('pt-BR')
+      const mensagem = gerarMensagemAgendamento(
+        animalAnterior.tutor_nome,
+        animalAtualizado.nome,
+        especieNotif,
+        dataFormatada,
+        animalAtualizado.horarioAgendamento || 'A confirmar',
+        animalAtualizado.localAgendamento || 'A confirmar',
+        animalAtualizado.enderecoAgendamento || 'A confirmar'
+      )
+      whatsappData = {
+        telefone: animalAnterior.tutor_telefone,
+        mensagem,
+      }
+      // Envia apenas email automaticamente
       notificarAgendamento(
         animalAnterior.tutor_telefone,
         animalAnterior.tutor_email,
@@ -156,7 +172,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       ).catch(err => console.error('Erro ao enviar notificação de agendamento:', err))
     }
 
-    return NextResponse.json(animalAtualizado)
+    return NextResponse.json({ ...animalAtualizado, whatsappData })
   } catch (error) {
     console.error('Erro ao editar animal pela entidade:', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })

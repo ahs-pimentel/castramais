@@ -174,6 +174,14 @@ export default function EntidadeAnimalDetalhePage({ params }: { params: Promise<
           localAgendamento: updated.localAgendamento || '',
           enderecoAgendamento: updated.enderecoAgendamento || '',
         })
+
+        // Abre WhatsApp Web com a mensagem para o tutor
+        if (updated.whatsappData) {
+          const { telefone, mensagem } = updated.whatsappData
+          const phone = telefone.replace(/\D/g, '')
+          const url = `https://wa.me/55${phone}?text=${encodeURIComponent(mensagem)}`
+          window.open(url, '_blank')
+        }
       }
     } catch {
       setError('Erro ao salvar alterações')

@@ -237,6 +237,16 @@ export function AnimalForm({ animal, mode }: AnimalFormProps) {
         })
 
         if (!res.ok) throw new Error('Erro ao atualizar')
+
+        const data = await res.json()
+
+        // Se agendou, abre WhatsApp Web com a mensagem para o tutor
+        if (data.whatsappData) {
+          const { telefone, mensagem } = data.whatsappData
+          const phone = telefone.replace(/\D/g, '')
+          const url = `https://wa.me/55${phone}?text=${encodeURIComponent(mensagem)}`
+          window.open(url, '_blank')
+        }
       }
 
       router.push('/dashboard')

@@ -108,10 +108,8 @@ ${fechamento()}`
   await enfileirarNotificacao(telefone, email, mensagem, `${nomePet} na Lista de Espera - Castra+MG`)
 }
 
-// Notificação: Animal agendado para castração
-export async function notificarAgendamento(
-  telefone: string,
-  email: string | null,
+// Gera a mensagem de agendamento (sem enviar)
+export function gerarMensagemAgendamento(
   nomeTutor: string,
   nomePet: string,
   especie: string,
@@ -119,14 +117,14 @@ export async function notificarAgendamento(
   horario: string,
   local: string,
   endereco: string
-): Promise<void> {
+): string {
   const emoji = especie.toLowerCase() === 'canino' ? '🐕' : '🐱'
   const jejum = especie.toLowerCase() === 'canino' ? '6 horas' : '4 horas'
   const transporte = especie.toLowerCase() === 'canino'
     ? 'coleira/peitoral com guia + toalha ou cobertor'
     : 'caixa de transporte (OBRIGATÓRIO)'
 
-  const mensagem = `*Castra+MG* - AGENDAMENTO CONFIRMADO! ✅
+  return `*Castra+MG* - AGENDAMENTO CONFIRMADO! ✅
 
 ${saudacao()}, *${nomeTutor}*!
 
@@ -156,8 +154,26 @@ Avise com pelo menos 24h de antecedência pelo WhatsApp.
 👉 wa.me/553121812062
 
 ${fechamento()}`
+}
 
-  await enfileirarNotificacao(telefone, email, mensagem, `Agendamento Confirmado: ${nomePet} - Castra+MG`)
+// Notificação: Animal agendado para castração (envia apenas email, WhatsApp é manual via WhatsApp Web)
+export async function notificarAgendamento(
+  telefone: string,
+  email: string | null,
+  nomeTutor: string,
+  nomePet: string,
+  especie: string,
+  dataAgendamento: string,
+  horario: string,
+  local: string,
+  endereco: string
+): Promise<void> {
+  const mensagem = gerarMensagemAgendamento(nomeTutor, nomePet, especie, dataAgendamento, horario, local, endereco)
+
+  // Apenas email automático - WhatsApp será enviado manualmente via WhatsApp Web
+  if (email) {
+    await enfileirarEmail(email, `Agendamento Confirmado: ${nomePet} - Castra+MG`, mensagem.replace(/\*/g, ''))
+  }
 }
 
 // Notificação: Lembrete 24h antes
