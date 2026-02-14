@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/pool'
-import { gerarToken, verificarSenha } from '@/lib/tutor-auth'
+import { gerarToken } from '@/lib/tutor-auth'
 import { cleanCPF, validateCPF } from '@/lib/utils'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { RATE_LIMITS } from '@/lib/constants'
@@ -8,10 +8,10 @@ import { RATE_LIMITS } from '@/lib/constants'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { cpf, senha } = body
+    const { cpf } = body
 
-    if (!cpf || !senha) {
-      return NextResponse.json({ error: 'CPF e senha são obrigatórios' }, { status: 400 })
+    if (!cpf) {
+      return NextResponse.json({ error: 'CPF é obrigatório' }, { status: 400 })
     }
 
     const cpfLimpo = cleanCPF(cpf)
@@ -20,28 +20,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'CPF inválido' }, { status: 400 })
     }
 
-    // Rate limiting
-    const limit = await checkRateLimit(`login-senha:cpf:${cpfLimpo}`, RATE_LIMITS.OTP_PER_CPF.max, RATE_LIMITS.OTP_PER_CPF.windowMs)
-    if (!limit.allowed) {
+    // Rate limiting por IP
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+    const ipLimit = await checkRateLimit(`login:ip:${ip}`, RATE_LIMITS.OTP_PER_IP.max, RATE_LIMITS.OTP_PER_IP.windowMs)
+    if (!ipLimit.allowed) {
       return NextResponse.json({ error: 'Muitas tentativas. Tente novamente em 15 minutos.' }, { status: 429 })
     }
 
-    // Buscar tutor com senha
+    // Buscar tutor por CPF
     const result = await pool.query(
-      'SELECT id, cpf, nome, senha_hash FROM tutores WHERE cpf = $1',
+      'SELECT id, nome, cpf FROM tutores WHERE cpf = $1',
       [cpfLimpo]
     )
 
     const tutor = result.rows[0]
 
-    // Resposta genérica para não revelar se CPF existe
-    if (!tutor || !tutor.senha_hash) {
-      return NextResponse.json({ error: 'CPF ou senha incorretos' }, { status: 401 })
-    }
-
-    const senhaValida = await verificarSenha(senha, tutor.senha_hash)
-    if (!senhaValida) {
-      return NextResponse.json({ error: 'CPF ou senha incorretos' }, { status: 401 })
+    if (!tutor) {
+      return NextResponse.json({ cadastroNecessario: true })
     }
 
     // Gerar JWT
@@ -53,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ token, nome: tutor.nome })
   } catch (error) {
-    console.error('Erro no login com senha:', error)
+    console.error('Erro ao fazer login:', error)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/pool'
+import { gerarToken } from '@/lib/tutor-auth'
 import { cleanCPF, validateCPF } from '@/lib/utils'
 import { v4 as uuidv4 } from 'uuid'
 import { checkRateLimit } from '@/lib/rate-limit'
@@ -69,10 +70,17 @@ export async function POST(request: NextRequest) {
       console.log(`[CADASTRO TUTOR] CPF: ${cpfLimpo} | Telefone: ${telefoneLimpo}`)
     }
 
+    // Gerar JWT para login automático
+    const token = gerarToken({
+      tutorId,
+      cpf: cpfLimpo,
+      nome: nome.trim(),
+    })
+
     return NextResponse.json({
       message: 'Cadastro realizado com sucesso',
-      tutorId: tutorId,
-      telefone: telefoneLimpo,
+      token,
+      nome: nome.trim(),
     })
   } catch (error) {
     console.error('Erro ao cadastrar tutor:', error)

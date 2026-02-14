@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { PawPrint, ArrowRight, ArrowLeft, Loader2, User, Phone, Mail, MapPin } from 'lucide-react'
 import { formatCPF, validateCPF, formatPhone } from '@/lib/utils'
-import { useFirebasePhoneAuth } from '@/hooks/useFirebasePhoneAuth'
 
 interface Campanha {
   id: string
@@ -15,7 +14,6 @@ interface Campanha {
 
 export default function TutorCadastroPage() {
   const router = useRouter()
-  const { sendOTP, loading: firebaseLoading, error: firebaseError } = useFirebasePhoneAuth()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -142,7 +140,6 @@ export default function TutorCadastroPage() {
         sessionStorage.setItem('campanhaId', formData.campanhaId)
       }
 
-      // 1. Cadastrar tutor no backend
       const res = await fetch('/api/tutor/cadastrar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -160,26 +157,10 @@ export default function TutorCadastroPage() {
       const data = await res.json()
 
       if (res.ok) {
-        // 2. Enviar OTP via Firebase SMS
-        const telefoneLimpo = formData.telefone.replace(/\D/g, '')
-        
-        try {
-          await sendOTP(telefoneLimpo)
-          
-          // Salvar dados na sessão e ir para verificação
-          sessionStorage.setItem('tutor_cpf', formData.cpf)
-          sessionStorage.setItem('tutor_telefone', telefoneLimpo)
-          sessionStorage.setItem('tutor_metodo', 'sms')
-          router.push('/tutor/verificar')
-        } catch (firebaseErr: any) {
-          // Se billing não habilitado, ainda permite continuar (mostra mensagem mas redireciona)
-          if (firebaseErr?.code === 'auth/billing-not-enabled') {
-            alert('SMS indisponível no momento. Por favor, faça login usando WhatsApp.');
-            router.push('/tutor');
-          } else {
-            setError(firebaseError || 'Erro ao enviar código SMS. Cadastro realizado, tente fazer login.');
-          }
-        }
+        // Login automático com o token retornado
+        localStorage.setItem('tutor_token', data.token)
+        localStorage.setItem('tutor_nome', data.nome)
+        router.push('/tutor/meus-pets')
       } else {
         setError(data.error || 'Erro ao realizar cadastro')
       }
@@ -192,9 +173,6 @@ export default function TutorCadastroPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      {/* reCAPTCHA container (invisível) */}
-      <div id="recaptcha-container"></div>
-      
       {/* Header */}
       <div className="pt-8 pb-4 px-6">
         <button
