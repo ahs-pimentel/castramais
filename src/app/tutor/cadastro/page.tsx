@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { PawPrint, ArrowRight, ArrowLeft, Loader2, User, Phone, Mail, MapPin } from 'lucide-react'
 import { formatCPF, validateCPF, formatPhone } from '@/lib/utils'
+import { useFirebasePhoneAuth } from '@/hooks/useFirebasePhoneAuth'
 
 interface Campanha {
   id: string
@@ -14,6 +15,7 @@ interface Campanha {
 
 export default function TutorCadastroPage() {
   const router = useRouter()
+  const { sendOTP, loading: firebaseLoading, error: firebaseError } = useFirebasePhoneAuth()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -140,6 +142,7 @@ export default function TutorCadastroPage() {
         sessionStorage.setItem('campanhaId', formData.campanhaId)
       }
 
+      // 1. Cadastrar tutor no backend
       const res = await fetch('/api/tutor/cadastrar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -157,11 +160,20 @@ export default function TutorCadastroPage() {
       const data = await res.json()
 
       if (res.ok) {
-        // Salvar dados e ir para verificacao
-        sessionStorage.setItem('tutor_cpf', formData.cpf)
-        sessionStorage.setItem('tutor_telefone', data.telefone || '')
-        sessionStorage.setItem('tutor_metodo', data.metodoEnvio || 'whatsapp')
-        router.push('/tutor/verificar')
+        // 2. Enviar OTP via Firebase SMS
+        const telefoneLimpo = formData.telefone.replace(/\D/g, '')
+        
+        try {
+          await sendOTP(telefoneLimpo)
+          
+          // Salvar dados na sessão e ir para verificação
+          sessionStorage.setItem('tutor_cpf', formData.cpf)
+          sessionStorage.setItem('tutor_telefone', telefoneLimpo)
+          sessionStorage.setItem('tutor_metodo', 'sms')
+          router.push('/tutor/verificar')
+        } catch (firebaseErr) {
+          setError(firebaseError || 'Erro ao enviar código SMS. Cadastro realizado, tente fazer login.')
+        }
       } else {
         setError(data.error || 'Erro ao realizar cadastro')
       }
@@ -174,6 +186,9 @@ export default function TutorCadastroPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
+      {/* reCAPTCHA container (invisível) */}
+      <div id="recaptcha-container"></div>
+      
       {/* Header */}
       <div className="pt-8 pb-4 px-6">
         <button

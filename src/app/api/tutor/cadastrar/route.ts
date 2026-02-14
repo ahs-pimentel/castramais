@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { pool } from '@/lib/pool'
-import { gerarCodigo, salvarCodigo } from '@/lib/tutor-auth'
-import { enviarCodigoVerificacao } from '@/lib/notifications'
 import { cleanCPF, validateCPF } from '@/lib/utils'
 import { v4 as uuidv4 } from 'uuid'
 import { checkRateLimit } from '@/lib/rate-limit'
@@ -66,34 +64,15 @@ export async function POST(request: NextRequest) {
       ]
     )
 
-    // Gerar e enviar código de verificação
-    const codigo = gerarCodigo()
-    await salvarCodigo(cpfLimpo, codigo)
-
-    // Enviar código por WhatsApp (ou email como fallback)
-    const resultado = await enviarCodigoVerificacao(
-      telefoneLimpo,
-      email?.trim() || null,
-      codigo,
-      'whatsapp'
-    )
-
-    // Mascarar telefone para retorno
-    const telefoneMascarado = `${telefoneLimpo.slice(0, 2)}*****${telefoneLimpo.slice(-4)}`
-
     // Log para debug
     if (process.env.NODE_ENV === 'development') {
-      console.log(`[CADASTRO TUTOR] CPF: ${cpfLimpo} | Código: ${codigo} | Método: ${resultado.metodo}`)
+      console.log(`[CADASTRO TUTOR] CPF: ${cpfLimpo} | Telefone: ${telefoneLimpo}`)
     }
 
     return NextResponse.json({
       message: 'Cadastro realizado com sucesso',
       tutorId: tutorId,
-      telefone: telefoneMascarado,
-      codigoEnviado: resultado.success,
-      metodoEnvio: resultado.metodo,
-      // Em dev, retorna o código para facilitar testes
-      ...(process.env.NODE_ENV === 'development' && { codigo }),
+      telefone: telefoneLimpo,
     })
   } catch (error) {
     console.error('Erro ao cadastrar tutor:', error)
