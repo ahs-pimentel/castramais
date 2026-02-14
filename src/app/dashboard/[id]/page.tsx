@@ -4,7 +4,7 @@ import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
-import { ArrowLeft, Trash2, Loader2 } from 'lucide-react'
+import { ArrowLeft, Trash2, Loader2, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AnimalForm } from '@/components/animal-form'
 import { AnimalWithTutor } from '@/lib/types'
@@ -88,23 +88,37 @@ export default function EditarAnimalPage({ params }: { params: Promise<PageParam
           </Link>
           <h1 className="text-xl font-semibold text-gray-900">Editar Animal</h1>
         </div>
-        {role === 'admin' && (
-          <Button
-            variant="danger"
-            size="sm"
-            onClick={handleDelete}
-            disabled={deleting}
-          >
-            {deleting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <>
-                <Trash2 className="w-4 h-4 mr-2" />
-                Excluir
-              </>
-            )}
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {animal.tutor?.telefone && (
+            <a
+              href={`https://wa.me/55${animal.tutor.telefone.replace(/\D/g, '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button type="button" variant="outline" size="sm">
+                <MessageCircle className="w-4 h-4 mr-2" />
+                WhatsApp
+              </Button>
+            </a>
+          )}
+          {role === 'admin' && (
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Excluir
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       </div>
 
       <AnimalForm animal={animal} mode="edit" />
