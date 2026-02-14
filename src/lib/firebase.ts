@@ -62,10 +62,16 @@ export async function sendPhoneOTP(
   recaptchaVerifier: RecaptchaVerifier
 ): Promise<ConfirmationResult> {
   try {
+    console.log('[Firebase] Enviando SMS para:', phoneNumber);
     const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
+    console.log('[Firebase] SMS enviado com sucesso');
     return confirmationResult;
   } catch (error: any) {
-    console.error('Erro ao enviar OTP:', error);
+    console.error('[Firebase] Erro ao enviar OTP:', {
+      code: error.code,
+      message: error.message,
+      phoneNumber,
+    });
     throw error;
   }
 }
@@ -91,15 +97,35 @@ export async function verifyPhoneOTP(
 
 /**
  * Converte telefone brasileiro para formato E.164
- * @param phone - Telefone no formato brasileiro (11999999999)
+ * @param phone - Telefone no formato brasileiro (11999999999 ou com máscara)
  * @returns Telefone no formato E.164 (+5511999999999)
+ * @throws Error se o número for inválido
  */
 export function formatPhoneToE164(phone: string): string {
+  // Remove todos os caracteres não numéricos
   const cleaned = phone.replace(/\D/g, '');
-  if (cleaned.startsWith('55')) {
-    return `+${cleaned}`;
+  
+  console.log('[formatPhoneToE164] Input:', phone, '| Cleaned:', cleaned);
+  
+  // Se já começa com 55, remove para evitar duplicação
+  let finalNumber = cleaned;
+  if (cleaned.startsWith('55') && cleaned.length > 11) {
+    finalNumber = cleaned; // Já tem o código do país
+  } else if (!cleaned.startsWith('55')) {
+    finalNumber = `55${cleaned}`; // Adiciona código do país
   }
-  return `+55${cleaned}`;
+  
+  // Validar comprimento: deve ter 13 dígitos (55 + DDD (2) + número (9))
+  // Celular: 55 11 9 8765 4321 = 13 dígitos
+  // Fixo: 55 11 3456 7890 = 12 dígitos
+  if (finalNumber.length < 12 || finalNumber.length > 13) {
+    console.error('[formatPhoneToE164] Número inválido:', finalNumber, `(${finalNumber.length} dígitos)`);
+    throw new Error(`Número de telefone inválido: deve ter 10 ou 11 dígitos (atual: ${cleaned.length})`);
+  }
+  
+  const e164 = `+${finalNumber}`;
+  console.log('[formatPhoneToE164] Output:', e164);
+  return e164;
 }
 
 export default app;

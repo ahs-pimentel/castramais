@@ -50,6 +50,7 @@ export function useFirebasePhoneAuth(): UseFirebasePhoneAuthReturn {
 
       // Formatar telefone para E.164
       const e164Phone = formatPhoneToE164(phoneNumber);
+      console.log('[Hook] Telefone formatado:', e164Phone);
 
       // Enviar OTP via Firebase
       const confirmationResult = await sendPhoneOTP(e164Phone, recaptchaVerifierRef.current);
@@ -61,6 +62,7 @@ export function useFirebasePhoneAuth(): UseFirebasePhoneAuthReturn {
       
       // Tratar erros específicos do Firebase
       const errorCode = err?.code || '';
+      console.error('[Hook] Erro ao enviar OTP:', errorCode, err.message);
       
       if (errorCode === 'auth/invalid-phone-number') {
         setError('Número de telefone inválido');
@@ -68,8 +70,14 @@ export function useFirebasePhoneAuth(): UseFirebasePhoneAuthReturn {
         setError('Muitas tentativas. Aguarde alguns minutos e tente novamente.');
       } else if (errorCode === 'auth/quota-exceeded') {
         setError('Limite de SMS excedido. Tente novamente mais tarde.');
+      } else if (errorCode === 'auth/captcha-check-failed') {
+        setError('Falha na verificação reCAPTCHA. Recarregue a página.');
+      } else if (errorCode === 'auth/missing-phone-number') {
+        setError('Número de telefone não fornecido');
+      } else if (errorCode === 'auth/operation-not-allowed') {
+        setError('Autenticação por telefone não está habilitada. Contate o suporte.');
       } else {
-        setError('Erro ao enviar código. Tente novamente.');
+        setError(`Erro ao enviar código: ${err.message || 'Tente novamente'}`);
       }
       
       throw err;
