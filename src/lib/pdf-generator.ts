@@ -285,6 +285,92 @@ export function gerarPDFAnimais(animais: Animal[], filtros?: string): void {
   doc.save(`animais-castramais-${new Date().toISOString().split('T')[0]}.pdf`)
 }
 
+// Gerar PDF de agendamentos (animais com data e hora do agendamento)
+export function gerarPDFAgendamentos(animais: Animal[], filtros?: string): void {
+  const doc = new jsPDF('l') // landscape
+
+  adicionarCabecalhoLandscape(doc, 'Relatório de Agendamentos')
+
+  if (filtros) {
+    doc.setFontSize(10)
+    doc.setTextColor(80, 80, 80)
+    doc.text(`Filtros aplicados: ${filtros}`, 14, 52)
+  }
+
+  const startY = filtros ? 58 : 52
+
+  const headers = [['Nome', 'Espécie', 'Sexo', 'RG Animal', 'Status', 'Data Agend.', 'Hora', 'Local', 'Tutor', 'Tel. Tutor', 'Campanha']]
+  const data = animais.map((a) => [
+    a.nome,
+    a.especie === 'cachorro' ? 'Cão' : 'Gato',
+    a.sexo === 'macho' ? 'M' : 'F',
+    a.registroSinpatinhas || '-',
+    traduzirStatus(a.status),
+    formatarData(a.dataAgendamento ?? undefined),
+    a.horarioAgendamento || '-',
+    a.localAgendamento || '-',
+    a.tutor?.nome || '-',
+    a.tutor?.telefone ? formatarTelefone(a.tutor.telefone) : '-',
+    a.campanha?.nome || a.campanha?.cidade || '-',
+  ])
+
+  doc.autoTable({
+    head: headers,
+    body: data,
+    startY,
+    theme: 'striped',
+    headStyles: {
+      fillColor: CORES.azulMarinho,
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 8,
+    },
+    bodyStyles: {
+      fontSize: 7,
+    },
+    alternateRowStyles: {
+      fillColor: [245, 245, 245],
+    },
+    margin: { left: 14, right: 14 },
+    columnStyles: {
+      0: { cellWidth: 22 },
+      1: { cellWidth: 16 },
+      2: { cellWidth: 10 },
+      3: { cellWidth: 24 },
+      4: { cellWidth: 20 },
+      5: { cellWidth: 22 },
+      6: { cellWidth: 16 },
+      7: { cellWidth: 30 },
+      8: { cellWidth: 28 },
+      9: { cellWidth: 28 },
+      10: { cellWidth: 'auto' },
+    },
+  })
+
+  // Resumo
+  const finalY = doc.lastAutoTable.finalY + 10
+  doc.setFontSize(11)
+  doc.setTextColor(...CORES.azulMarinho)
+  doc.text(`Total de registros: ${animais.length}`, 14, finalY)
+
+  const porStatus = animais.reduce((acc, a) => {
+    acc[a.status] = (acc[a.status] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+
+  let statusY = finalY + 6
+  Object.entries(porStatus).forEach(([status, count]) => {
+    doc.setFontSize(10)
+    doc.setTextColor(80, 80, 80)
+    doc.text(`• ${traduzirStatus(status)}: ${count}`, 20, statusY)
+    statusY += 5
+  })
+
+  adicionarRodape(doc)
+
+  doc.save(`agendamentos-castramais-${new Date().toISOString().split('T')[0]}.pdf`)
+}
+
 // Gerar PDF de lista de tutores
 export function gerarPDFTutores(tutores: Tutor[]): void {
   const doc = new jsPDF()

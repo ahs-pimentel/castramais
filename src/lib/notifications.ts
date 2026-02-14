@@ -1,6 +1,5 @@
 // Serviço de notificações - WhatsApp (Evolution API) e Email
 // Notificações são enfileiradas para evitar bloqueio do WhatsApp.
-// OTP (código de verificação) é enviado diretamente por ser time-sensitive.
 
 import { enfileirarWhatsApp, enfileirarEmail } from './message-queue'
 import { enviarWhatsApp, enviarEmail } from './senders'
@@ -287,7 +286,7 @@ Acesse o sistema para acompanhar o status do seu pet:
 
 👉 *castramaismg.org/tutor*
 
-Basta informar seu CPF e confirmar pelo código enviado por WhatsApp.
+Basta informar seu CPF para acessar.
 
 Você receberá notificações sobre o agendamento pelo WhatsApp.
 
@@ -298,54 +297,3 @@ ${fechamento()}`
   await enfileirarNotificacao(telefone, email, mensagem, `Seu pet ${nomePet} foi cadastrado - Castra+MG`)
 }
 
-// ============================================
-// CÓDIGO DE VERIFICAÇÃO (OTP) - ENVIO DIRETO
-// OTP é time-sensitive (5min), não passa pela fila
-// ============================================
-
-export async function enviarCodigoVerificacao(
-  telefone: string,
-  email: string | null,
-  codigo: string,
-  preferencia: 'whatsapp' | 'email' = 'whatsapp'
-): Promise<{ success: boolean; metodo: 'whatsapp' | 'email'; error?: string }> {
-  const mensagem = `*Castra+* - Seu código de verificação é:\n\n*${codigo}*\n\nEste código expira em 5 minutos.`
-
-  if (preferencia === 'whatsapp') {
-    const whatsappResult = await enviarWhatsApp(telefone, mensagem)
-    if (whatsappResult.success) {
-      return { success: true, metodo: 'whatsapp' }
-    }
-
-    if (email) {
-      const emailResult = await enviarEmail(
-        email,
-        'Seu código de verificação - Castra+',
-        `Seu código de verificação é: ${codigo}\n\nEste código expira em 5 minutos.`
-      )
-      if (emailResult.success) {
-        return { success: true, metodo: 'email' }
-      }
-    }
-
-    return { success: false, metodo: 'whatsapp', error: 'Não foi possível enviar o código' }
-  }
-
-  if (email) {
-    const emailResult = await enviarEmail(
-      email,
-      'Seu código de verificação - Castra+',
-      `Seu código de verificação é: ${codigo}\n\nEste código expira em 5 minutos.`
-    )
-    if (emailResult.success) {
-      return { success: true, metodo: 'email' }
-    }
-  }
-
-  const whatsappResult = await enviarWhatsApp(telefone, mensagem)
-  if (whatsappResult.success) {
-    return { success: true, metodo: 'whatsapp' }
-  }
-
-  return { success: false, metodo: 'email', error: 'Não foi possível enviar o código' }
-}

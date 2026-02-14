@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { Plus, ListFilter, Loader2, FileDown } from 'lucide-react'
+import { Plus, ListFilter, Loader2, FileDown, CalendarClock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { StatsCards } from '@/components/stats-cards'
 import { VagasCidadeIndicator } from '@/components/vagas-cidade-indicator'
 import { SearchFilter } from '@/components/search-filter'
 import { AnimalCard } from '@/components/animal-card'
 import { AnimalWithTutor, Stats } from '@/lib/types'
-import { gerarPDFAnimais } from '@/lib/pdf-generator'
+import { gerarPDFAnimais, gerarPDFAgendamentos } from '@/lib/pdf-generator'
 
 export default function DashboardPage() {
   const [animais, setAnimais] = useState<AnimalWithTutor[]>([])
@@ -122,6 +122,24 @@ export default function DashboardPage() {
         >
           <FileDown className="w-4 h-4 mr-2" />
           PDF
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            const campanhaObj = campanhas.find(c => c.id === campanha)
+            const filtros = [
+              search && `Busca: "${search}"`,
+              status && `Status: ${status}`,
+              campanhaObj && `Campanha: ${campanhaObj.nome}`,
+            ].filter(Boolean).join(', ')
+            gerarPDFAgendamentos(animais, filtros || undefined)
+          }}
+          disabled={animais.length === 0}
+          className="shrink-0"
+        >
+          <CalendarClock className="w-4 h-4 mr-2" />
+          Agendamentos
         </Button>
       </div>
 
