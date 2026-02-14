@@ -8,7 +8,7 @@ import { ArrowLeft, Trash2, Loader2, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AnimalForm } from '@/components/animal-form'
 import { AnimalWithTutor } from '@/lib/types'
-import { gerarMensagemCancelamentoIdade } from '@/lib/notifications'
+import { gerarMensagemCancelamentoIdade } from '@/lib/mensagens'
 
 type PageParams = { id: string }
 
