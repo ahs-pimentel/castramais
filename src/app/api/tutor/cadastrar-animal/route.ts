@@ -47,6 +47,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Raça é obrigatória' }, { status: 400 })
     }
 
+    // Validação de idade: 6 meses a 10 anos
+    const anos = idadeAnos ? parseInt(idadeAnos) : 0
+    const meses = idadeMeses ? parseInt(idadeMeses) : 0
+    const idadeTotalMeses = (anos * 12) + meses
+    if (idadeTotalMeses < 6 || idadeTotalMeses > 120) {
+      return NextResponse.json({ error: 'Idade do pet deve ser entre 6 meses e 10 anos' }, { status: 400 })
+    }
+
     // Buscar dados do tutor para notificação e verificação de vagas
     const tutor = await buscarTutorNotificacao(payload.tutorId)
 

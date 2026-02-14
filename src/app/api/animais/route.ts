@@ -116,6 +116,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { tutorId, tutor: tutorData, registroSinpatinhas, campanhaId, ...animalData } = body
 
+    // Validação de idade: 6 meses a 10 anos
+    const anos = animalData.idadeAnos ? parseInt(animalData.idadeAnos) : 0
+    const meses = animalData.idadeMeses ? parseInt(animalData.idadeMeses) : 0
+    const idadeTotalMeses = (anos * 12) + meses
+    if (idadeTotalMeses < 6 || idadeTotalMeses > 120) {
+      return NextResponse.json({ error: 'Idade do pet deve ser entre 6 meses e 10 anos' }, { status: 400 })
+    }
+
     // Verificar se RG já existe (se fornecido)
     if (registroSinpatinhas) {
       const existingAnimal = await buscarAnimalPorRG(registroSinpatinhas)

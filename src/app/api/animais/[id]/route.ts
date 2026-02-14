@@ -95,6 +95,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Nenhum campo para atualizar' }, { status: 400 })
     }
 
+    // Validação de idade: 6 meses a 10 anos (se alterando idade)
+    if (body.idadeAnos !== undefined || body.idadeMeses !== undefined) {
+      const anos = (body.idadeAnos !== undefined ? parseInt(body.idadeAnos) : animalAnterior.idadeAnos) || 0
+      const meses = (body.idadeMeses !== undefined ? parseInt(body.idadeMeses) : animalAnterior.idadeMeses) || 0
+      const idadeTotalMeses = (anos * 12) + meses
+      if (idadeTotalMeses < 6 || idadeTotalMeses > 120) {
+        return NextResponse.json({ error: 'Idade do pet deve ser entre 6 meses e 10 anos' }, { status: 400 })
+      }
+    }
+
     values.push(id)
     const result = await pool.query(
       `UPDATE animais SET ${updateFields.join(', ')}, "updatedAt" = NOW() WHERE id = $${paramIndex} RETURNING *`,
