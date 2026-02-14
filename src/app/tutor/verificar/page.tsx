@@ -90,13 +90,22 @@ export default function VerificarCodigoPage() {
 
     try {
       // Verificar código OTP com Firebase
-      const firebaseToken = await verifyOTP(codeStr)
+      const userCredential = await verifyOTP(codeStr)
       
-      // Autenticar no backend com token Firebase
+      // Obter o número de telefone verificado do Firebase
+      const phoneNumber = userCredential.user.phoneNumber
+      
+      if (!phoneNumber) {
+        setError('Erro ao obter número de telefone do Firebase')
+        setLoading(false)
+        return
+      }
+      
+      // Autenticar no backend com CPF e telefone verificado
       const res = await fetch('/api/tutor/login-firebase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cpf, firebaseToken }),
+        body: JSON.stringify({ cpf, phoneNumber }),
       })
 
       const data = await res.json()
@@ -110,8 +119,6 @@ export default function VerificarCodigoPage() {
         sessionStorage.removeItem('tutor_esqueceu_senha')
 
         // Verificar se precisa criar senha
-        // Como agora usamos Firebase, vamos buscar essa info do backend
-        // Por enquanto, sempre redireciona para criar senha se esqueceu ou não tem
         if (esqueceuSenha) {
           router.push('/tutor/criar-senha')
         } else {

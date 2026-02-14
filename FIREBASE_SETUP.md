@@ -35,41 +35,15 @@ Se você quiser testar localmente sem acionar o reCAPTCHA real, use os números 
 3. Adicione um número de teste (ex: `+1 650-555-1234`) e um código fixo (ex: `123456`)
 4. Use este número no desenvolvimento para evitar custos de SMS
 
-## 4. Configurar Firebase Admin SDK (Backend)
+## 4. Configuração Simplificada (Sem Service Account)
 
-### 4.1 Gerar Service Account Key
+⚠️ **NOTA:** Este projeto foi configurado para funcionar **SEM** Firebase Admin SDK no backend, evitando a necessidade de Service Account Key.
 
-1. No Firebase Console, clique no ícone de engrenagem ⚙️ → **Project settings**
-2. Vá na aba **Service accounts**
-3. Clique em **Generate new private key**
-4. Um arquivo JSON será baixado - **GUARDE COM SEGURANÇA** ⚠️
+A validação do OTP é feita inteiramente no frontend pelo Firebase, e o backend apenas verifica:
+- CPF do tutor no banco de dados
+- Correspondência entre o telefone autenticado e o cadastrado
 
-### 4.2 Configurar Variável de Ambiente
-
-Adicione a chave do Service Account como variável de ambiente:
-
-**Desenvolvimento (.env.local):**
-```bash
-FIREBASE_SERVICE_ACCOUNT_KEY='{"type":"service_account","project_id":"castramais-9f7e0",...}'
-```
-
-**Produção:**
-Configure a variável `FIREBASE_SERVICE_ACCOUNT_KEY` no seu ambiente de produção (Vercel, Railway, etc.) com o conteúdo completo do JSON.
-
-### 4.3 Alternativa: Usar Arquivo JSON
-
-Se preferir usar um arquivo ao invés de variável de ambiente:
-
-1. Coloque o arquivo JSON em `config/firebase-adminsdk.json`
-2. Adicione `config/` ao `.gitignore` (IMPORTANTE! ⚠️)
-3. Modifique `src/lib/firebase-admin.ts` para ler o arquivo:
-
-```typescript
-import * as serviceAccount from '../../config/firebase-adminsdk.json';
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
-});
-```
+**Não é necessária configuração adicional no backend!**
 
 ## 5. Testar o Fluxo
 

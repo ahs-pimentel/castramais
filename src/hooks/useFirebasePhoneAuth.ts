@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { RecaptchaVerifier, ConfirmationResult } from 'firebase/auth';
+import { RecaptchaVerifier, ConfirmationResult, UserCredential } from 'firebase/auth';
 import { createRecaptchaVerifier, sendPhoneOTP, verifyPhoneOTP, formatPhoneToE164 } from '@/lib/firebase';
 
 interface UseFirebasePhoneAuthReturn {
   sendOTP: (phoneNumber: string) => Promise<void>;
-  verifyOTP: (code: string) => Promise<string>; // Retorna o ID token
+  verifyOTP: (code: string) => Promise<UserCredential>; // Retorna o UserCredential completo
   loading: boolean;
   error: string | null;
   clearError: () => void;
@@ -76,40 +76,37 @@ export function useFirebasePhoneAuth(): UseFirebasePhoneAuthReturn {
     }
   };
 
-  const verifyOTP = async (code: string): Promise<string> => {
-    setLoading(true);
-    setError(null);
+  const verifyOTP = async (code: string): Promise<UserCredential> => {
+    setLoading(true)
+    setError(null)
 
     try {
       if (!confirmationResultRef.current) {
-        throw new Error('Nenhum código foi enviado. Envie o OTP primeiro.');
+        throw new Error('Nenhum código foi enviado. Envie o OTP primeiro.')
       }
 
       // Verificar código
-      const userCredential = await verifyPhoneOTP(confirmationResultRef.current, code);
-      
-      // Obter ID token para autenticação no backend
-      const idToken = await userCredential.user.getIdToken();
+      const userCredential = await verifyPhoneOTP(confirmationResultRef.current, code)
 
-      setLoading(false);
-      return idToken;
+      setLoading(false)
+      return userCredential
     } catch (err: any) {
-      setLoading(false);
+      setLoading(false)
       
       // Tratar erros específicos
-      const errorCode = err?.code || '';
+      const errorCode = err?.code || ''
       
       if (errorCode === 'auth/invalid-verification-code') {
-        setError('Código inválido. Verifique e tente novamente.');
+        setError('Código inválido. Verifique e tente novamente.')
       } else if (errorCode === 'auth/code-expired') {
-        setError('Código expirado. Solicite um novo código.');
+        setError('Código expirado. Solicite um novo código.')
       } else {
-        setError('Erro ao verificar código. Tente novamente.');
+        setError('Erro ao verificar código. Tente novamente.')
       }
       
-      throw err;
+      throw err
     }
-  };
+  }
 
   const clearError = () => {
     setError(null);

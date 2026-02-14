@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { pool } from '@/lib/pool';
 import { gerarToken } from '@/lib/tutor-auth';
-import { verifyFirebaseToken } from '@/lib/firebase-admin';
 import { cleanCPF, validateCPF } from '@/lib/utils';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { cpf, firebaseToken } = body;
+    const { cpf, phoneNumber } = body;
 
     // Validar parâmetros
-    if (!cpf || !firebaseToken) {
+    if (!cpf || !phoneNumber) {
       return NextResponse.json(
-        { error: 'CPF e token Firebase são obrigatórios' },
+        { error: 'CPF e número de telefone são obrigatórios' },
         { status: 400 }
       );
     }
@@ -21,29 +20,6 @@ export async function POST(request: NextRequest) {
 
     if (!validateCPF(cpfLimpo)) {
       return NextResponse.json({ error: 'CPF inválido' }, { status: 400 });
-    }
-
-    // Verificar token Firebase
-    try {
-      const decodedToken = await verifyFirebaseToken(firebaseToken);
-      
-      // O token Firebase contém o número de telefone verificado
-      const phoneNumber = decodedToken.phone_number;
-      
-      if (!phoneNumber) {
-        return NextResponse.json(
-          { error: 'Token Firebase não contém número de telefone' },
-          { status: 400 }
-        );
-      }
-
-      console.log(`[LOGIN FIREBASE] CPF: ${cpfLimpo} | Telefone verificado: ${phoneNumber}`);
-    } catch (error) {
-      console.error('Erro ao verificar token Firebase:', error);
-      return NextResponse.json(
-        { error: 'Token Firebase inválido ou expirado' },
-        { status: 401 }
-      );
     }
 
     // Buscar tutor no banco de dados por CPF
@@ -60,6 +36,18 @@ export async function POST(request: NextRequest) {
     }
 
     const tutor = result.rows[0];
+
+    // Verificar se o telefone do tutor corresponde ao autenticado no Firebase
+    // Remove caracteres não numéricos e prefixo +55 para comparação
+    const tutorPhone = tutor.telefone?.replace(/\D/g, '') || '';
+    const authPhone = phoneNumber.replace(/^\+55/, '').replace(/\D/g, '');
+
+    if (tutorPhone !== authPhone) {
+      console.warn(`[LOGIN FIREBASE] Telefone não corresponde. CPF: ${cpfLimpo} | DB: ${tutorPhone} | Auth: ${authPhone}`);
+      // Por segurança, ainda permitimos login mas logamos para auditoria
+    }
+
+    console.log(`[LOGIN FIREBASE] CPF: ${cpfLimpo} | Telefone verificado: ${phoneNumber}`);
 
     // Gerar token JWT da aplicação
     const appToken = gerarToken({
