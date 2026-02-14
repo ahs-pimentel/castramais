@@ -8,6 +8,7 @@ import { ArrowLeft, Trash2, Loader2, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AnimalForm } from '@/components/animal-form'
 import { AnimalWithTutor } from '@/lib/types'
+import { gerarMensagemCancelamentoIdade } from '@/lib/notifications'
 
 type PageParams = { id: string }
 
@@ -89,18 +90,23 @@ export default function EditarAnimalPage({ params }: { params: Promise<PageParam
           <h1 className="text-xl font-semibold text-gray-900">Editar Animal</h1>
         </div>
         <div className="flex items-center gap-2">
-          {animal.tutor?.telefone && (
-            <a
-              href={`https://wa.me/55${animal.tutor.telefone.replace(/\D/g, '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button type="button" variant="outline" size="sm">
-                <MessageCircle className="w-4 h-4 mr-2" />
-                WhatsApp
-              </Button>
-            </a>
-          )}
+          {animal.tutor?.telefone && (() => {
+            const phone = animal.tutor.telefone.replace(/\D/g, '')
+            const mensagem = animal.status === 'cancelado'
+              ? gerarMensagemCancelamentoIdade(animal.tutor.nome, animal.nome)
+              : ''
+            const url = mensagem
+              ? `https://wa.me/55${phone}?text=${encodeURIComponent(mensagem)}`
+              : `https://wa.me/55${phone}`
+            return (
+              <a href={url} target="_blank" rel="noopener noreferrer">
+                <Button type="button" variant="outline" size="sm">
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  WhatsApp
+                </Button>
+              </a>
+            )
+          })()}
           {role === 'admin' && (
             <Button
               variant="danger"

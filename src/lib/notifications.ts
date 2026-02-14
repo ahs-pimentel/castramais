@@ -244,6 +244,31 @@ ${fechamento()}`
   await enfileirarNotificacao(telefone, email, mensagem, `Castração de ${nomePet} realizada! - Castra+MG`)
 }
 
+// Gera mensagem de cancelamento por falta de informação de idade (sem enviar)
+export function gerarMensagemCancelamentoIdade(
+  nomeTutor: string,
+  nomePet: string
+): string {
+  return `*Castra+MG* 🐾
+
+${saudacao()}, *${nomeTutor}*!
+
+Entramos em contato para informar que o cadastro do seu pet *${nomePet}* no programa *Castra+MG* foi *cancelado* por falta de informação sobre a idade.
+
+📋 *Motivo:* O programa atende apenas pets com idade entre *6 meses e 10 anos*. Como a idade do seu pet não foi informada ou está fora dessa faixa, o cadastro foi cancelado automaticamente.
+
+✅ *O que fazer para regularizar:*
+1. Acesse *castramaismg.org/tutor* com seu CPF
+2. Cadastre seu pet novamente informando a idade correta
+3. A idade deve estar entre *6 meses e 10 anos*
+
+⚠️ Caso seu pet esteja dentro da faixa de idade permitida, basta refazer o cadastro com a informação correta.
+
+Em caso de dúvidas, responda esta mensagem.
+
+${fechamento()}`
+}
+
 // Notificação: Agendamento cancelado
 export async function notificarCancelamento(
   telefone: string,
