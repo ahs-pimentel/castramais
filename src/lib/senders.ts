@@ -16,8 +16,10 @@ export interface SendResult {
 
 export async function enviarWhatsApp(
   telefone: string,
-  mensagem: string
+  mensagem: string,
+  instancia?: string
 ): Promise<SendResult> {
+  const inst = instancia || EVOLUTION_INSTANCE
   try {
     let numero = telefone.replace(/\D/g, '')
     if (!numero.startsWith('55')) {
@@ -25,7 +27,7 @@ export async function enviarWhatsApp(
     }
 
     const response = await fetch(
-      `${EVOLUTION_API_URL}/message/sendText/${EVOLUTION_INSTANCE}`,
+      `${EVOLUTION_API_URL}/message/sendText/${inst}`,
       {
         method: 'POST',
         headers: {
@@ -41,14 +43,14 @@ export async function enviarWhatsApp(
 
     if (!response.ok) {
       const error = await response.text()
-      console.error('[WhatsApp] Erro ao enviar:', error)
+      console.error(`[WhatsApp] Erro ao enviar via ${inst}:`, error)
       return { success: false, error: 'Falha ao enviar WhatsApp' }
     }
 
-    console.log(`[WhatsApp] Mensagem enviada para ${numero}`)
+    console.log(`[WhatsApp] Mensagem enviada para ${numero} via ${inst}`)
     return { success: true }
   } catch (error) {
-    console.error('[WhatsApp] Erro:', error)
+    console.error(`[WhatsApp] Erro via ${inst}:`, error)
     return { success: false, error: 'Erro de conexão com WhatsApp' }
   }
 }

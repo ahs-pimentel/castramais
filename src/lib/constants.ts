@@ -24,6 +24,7 @@ export const JWT_EXPIRY = {
 // Evolution API
 export const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL || ''
 export const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY || ''
+// Legacy: usado como fallback quando não há instâncias no banco. Preferir tabela instancias_whatsapp.
 export const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || ''
 
 // Fila de mensagens (anti-bloqueio WhatsApp)

@@ -1,4 +1,5 @@
 // Integração com Evolution API para envio de mensagens WhatsApp
+// Suporta multi-instância: todas as funções aceitam nome da instância como parâmetro
 
 import { EVOLUTION_API_URL, EVOLUTION_API_KEY, EVOLUTION_INSTANCE } from './constants'
 
@@ -35,27 +36,33 @@ interface EvolutionWebhookMessage {
   }
 }
 
+// Resolve nome da instância: parâmetro explícito > env fallback
+function resolverInstancia(instancia?: string): string {
+  return instancia || EVOLUTION_INSTANCE
+}
+
 /**
  * Envia mensagem de texto via WhatsApp usando Evolution API
  */
 export async function enviarMensagemWhatsApp(
   telefone: string,
-  mensagem: string
+  mensagem: string,
+  instancia?: string
 ): Promise<SendMessageResponse | null> {
-  if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY || !EVOLUTION_INSTANCE) {
+  const inst = resolverInstancia(instancia)
+  if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY || !inst) {
     console.log('[Evolution] API não configurada')
     return null
   }
 
   try {
-    // Formatar telefone (apenas números, com código do país)
     let numero = telefone.replace(/\D/g, '')
     if (!numero.startsWith('55')) {
       numero = '55' + numero
     }
 
     const res = await fetch(
-      `${EVOLUTION_API_URL}/message/sendText/${EVOLUTION_INSTANCE}`,
+      `${EVOLUTION_API_URL}/message/sendText/${inst}`,
       {
         method: 'POST',
         headers: {
@@ -71,15 +78,15 @@ export async function enviarMensagemWhatsApp(
 
     if (res.ok) {
       const data = await res.json()
-      console.log(`[Evolution] Mensagem enviada para ${numero}`)
+      console.log(`[Evolution] Mensagem enviada para ${numero} via ${inst}`)
       return data
     }
 
     const error = await res.text()
-    console.error('[Evolution] Erro ao enviar mensagem:', error)
+    console.error(`[Evolution] Erro ao enviar mensagem via ${inst}:`, error)
     return null
   } catch (error) {
-    console.error('[Evolution] Erro ao enviar mensagem:', error)
+    console.error(`[Evolution] Erro ao enviar mensagem via ${inst}:`, error)
     return null
   }
 }
@@ -92,9 +99,11 @@ export async function enviarMidiaWhatsApp(
   tipo: 'image' | 'document' | 'audio' | 'video',
   mediaUrl: string,
   caption?: string,
-  fileName?: string
+  fileName?: string,
+  instancia?: string
 ): Promise<SendMessageResponse | null> {
-  if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY || !EVOLUTION_INSTANCE) {
+  const inst = resolverInstancia(instancia)
+  if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY || !inst) {
     console.log('[Evolution] API não configurada')
     return null
   }
@@ -106,7 +115,7 @@ export async function enviarMidiaWhatsApp(
     }
 
     const res = await fetch(
-      `${EVOLUTION_API_URL}/message/sendMedia/${EVOLUTION_INSTANCE}`,
+      `${EVOLUTION_API_URL}/message/sendMedia/${inst}`,
       {
         method: 'POST',
         headers: {
@@ -125,43 +134,37 @@ export async function enviarMidiaWhatsApp(
 
     if (res.ok) {
       const data = await res.json()
-      console.log(`[Evolution] Mídia enviada para ${numero}`)
+      console.log(`[Evolution] Mídia enviada para ${numero} via ${inst}`)
       return data
     }
 
     return null
   } catch (error) {
-    console.error('[Evolution] Erro ao enviar mídia:', error)
+    console.error(`[Evolution] Erro ao enviar mídia via ${inst}:`, error)
     return null
   }
 }
 
 /**
- * Verifica status da conexão do WhatsApp
+ * Verifica status da conexão de uma instância WhatsApp
  */
-export async function verificarConexaoWhatsApp(): Promise<{
+export async function verificarConexaoWhatsApp(instancia?: string): Promise<{
   conectado: boolean
   estado?: string
 }> {
-  if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY || !EVOLUTION_INSTANCE) {
+  const inst = resolverInstancia(instancia)
+  if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY || !inst) {
     return { conectado: false }
   }
 
   try {
-    const url = `${EVOLUTION_API_URL}/instance/connectionState/${EVOLUTION_INSTANCE}`
-    console.log('[Evolution] Verificando conexão:', { url, instance: EVOLUTION_INSTANCE })
-
-    const res = await fetch(url, {
-      headers: {
-        'apikey': EVOLUTION_API_KEY,
-      },
-    })
-
-    console.log('[Evolution] Response status:', res.status, res.statusText)
+    const res = await fetch(
+      `${EVOLUTION_API_URL}/instance/connectionState/${inst}`,
+      { headers: { 'apikey': EVOLUTION_API_KEY } }
+    )
 
     if (res.ok) {
       const data = await res.json()
-      console.log('[Evolution] Response data:', JSON.stringify(data, null, 2))
       const state = data.instance?.state || data.state
       return {
         conectado: state === 'open',
@@ -169,11 +172,9 @@ export async function verificarConexaoWhatsApp(): Promise<{
       }
     }
 
-    const errorText = await res.text()
-    console.error('[Evolution] Erro na resposta:', { status: res.status, body: errorText })
     return { conectado: false }
   } catch (error) {
-    console.error('[Evolution] Erro ao verificar conexão:', error)
+    console.error(`[Evolution] Erro ao verificar conexão ${inst}:`, error)
     return { conectado: false }
   }
 }
@@ -182,16 +183,18 @@ export async function verificarConexaoWhatsApp(): Promise<{
  * Configurar webhook no Evolution API
  */
 export async function configurarWebhookEvolution(
-  webhookUrl: string
+  webhookUrl: string,
+  instancia?: string
 ): Promise<boolean> {
-  if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY || !EVOLUTION_INSTANCE) {
+  const inst = resolverInstancia(instancia)
+  if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY || !inst) {
     console.log('[Evolution] API não configurada')
     return false
   }
 
   try {
     const res = await fetch(
-      `${EVOLUTION_API_URL}/webhook/set/${EVOLUTION_INSTANCE}`,
+      `${EVOLUTION_API_URL}/webhook/set/${inst}`,
       {
         method: 'POST',
         headers: {
@@ -215,7 +218,7 @@ export async function configurarWebhookEvolution(
     )
 
     if (res.ok) {
-      console.log(`[Evolution] Webhook configurado: ${webhookUrl}`)
+      console.log(`[Evolution] Webhook configurado para ${inst}: ${webhookUrl}`)
       return true
     }
 
@@ -245,13 +248,12 @@ export function extrairTextoMensagem(data: EvolutionWebhookMessage['data']): str
  * Extrair número de telefone do remoteJid
  */
 export function extrairTelefone(remoteJid: string): string {
-  // remoteJid format: 5531999999999@s.whatsapp.net
   return remoteJid.replace('@s.whatsapp.net', '').replace('@g.us', '')
 }
 
 /**
- * Verificar se a API está configurada
+ * Verificar se a API está configurada (pelo menos URL + key)
  */
 export function isEvolutionConfigurada(): boolean {
-  return !!(EVOLUTION_API_URL && EVOLUTION_API_KEY && EVOLUTION_INSTANCE)
+  return !!(EVOLUTION_API_URL && EVOLUTION_API_KEY)
 }

@@ -96,10 +96,19 @@ export default function VerificarCodigoPage() {
       const data = await res.json()
 
       if (res.ok) {
-        // Salvar token e ir para o app
+        // Salvar token
         localStorage.setItem('tutor_token', data.token)
         localStorage.setItem('tutor_nome', data.nome)
-        router.push('/tutor/meus-pets')
+
+        const esqueceuSenha = sessionStorage.getItem('tutor_esqueceu_senha')
+        sessionStorage.removeItem('tutor_esqueceu_senha')
+
+        // Se não tem senha ou esqueceu → criar senha
+        if (!data.temSenha || esqueceuSenha) {
+          router.push('/tutor/criar-senha')
+        } else {
+          router.push('/tutor/meus-pets')
+        }
       } else {
         setError(data.error || 'Código inválido')
         setCode(['', '', '', '', '', ''])

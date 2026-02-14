@@ -161,6 +161,28 @@ async function seed() {
       CREATE INDEX IF NOT EXISTS idx_fila_status ON fila_mensagens(status, prioridade DESC, "proximaTentativa")
     `)
 
+    // Tabela instancias_whatsapp (rotação de números WhatsApp)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS instancias_whatsapp (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        nome VARCHAR(100) NOT NULL UNIQUE,
+        descricao VARCHAR(255),
+        ativo BOOLEAN DEFAULT true,
+        status VARCHAR(20) DEFAULT 'desconhecido',
+        mensagens_enviadas INTEGER DEFAULT 0,
+        mensagens_hoje INTEGER DEFAULT 0,
+        ultimo_envio TIMESTAMP,
+        ultimo_erro TEXT,
+        ultimo_check TIMESTAMP,
+        "criadoEm" TIMESTAMP DEFAULT NOW()
+      )
+    `)
+
+    // Migração: adicionar instancia_id na fila_mensagens
+    await pool.query(`
+      ALTER TABLE fila_mensagens ADD COLUMN IF NOT EXISTS instancia_id UUID REFERENCES instancias_whatsapp(id)
+    `)
+
     // Migrações para bancos existentes
     await pool.query(`
       DO $$
@@ -182,6 +204,9 @@ async function seed() {
         END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'entidades' AND column_name = 'endereco') THEN
           ALTER TABLE entidades ADD COLUMN endereco VARCHAR(255);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tutores' AND column_name = 'senha_hash') THEN
+          ALTER TABLE tutores ADD COLUMN senha_hash VARCHAR(255);
         END IF;
         -- Tornar registroSinpatinhas opcional (permitir NULL)
         ALTER TABLE animais ALTER COLUMN "registroSinpatinhas" DROP NOT NULL;
@@ -226,6 +251,17 @@ async function seed() {
       // Limpar sufixo /MG das cidades dos tutores
       await pool.query(`UPDATE tutores SET cidade = REPLACE(cidade, '/MG', '') WHERE cidade LIKE '%/MG'`)
       console.log('Migração de dados concluída!')
+    }
+
+    // Seed instância WhatsApp inicial (migração do single-instance)
+    const instanciasExistentes = await pool.query('SELECT COUNT(*)::int as total FROM instancias_whatsapp')
+    if (instanciasExistentes.rows[0].total === 0 && process.env.EVOLUTION_INSTANCE) {
+      await pool.query(
+        `INSERT INTO instancias_whatsapp (nome, descricao, ativo, status)
+         VALUES ($1, $2, true, 'desconhecido')`,
+        [process.env.EVOLUTION_INSTANCE, 'Instância original (migrada)']
+      )
+      console.log(`Instância WhatsApp '${process.env.EVOLUTION_INSTANCE}' criada`)
     }
 
     // Verificar se admin existe

@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
+import bcrypt from 'bcryptjs'
 import { getTutorJwtSecret } from './jwt-secrets'
 import { pool } from './pool'
 import { OTP_CONFIG, JWT_EXPIRY } from './constants'
@@ -74,4 +75,13 @@ export function extrairToken(authHeader: string | null): string | null {
   const parts = authHeader.split(' ')
   if (parts.length !== 2 || parts[0] !== 'Bearer') return null
   return parts[1]
+}
+
+// Senha
+export async function hashSenha(senha: string): Promise<string> {
+  return bcrypt.hash(senha, 10)
+}
+
+export async function verificarSenha(senha: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(senha, hash)
 }

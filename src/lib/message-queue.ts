@@ -1,9 +1,11 @@
 // Fila de mensagens DB-backed para evitar bloqueio do WhatsApp
 // Controla velocidade de envio com delay entre mensagens e retry com backoff
+// Suporta multi-instância: seleciona instância com menos uso no dia
 
 import { pool } from './pool'
 import { QUEUE_CONFIG } from './constants'
 import { enviarWhatsApp, enviarEmail } from './senders'
+import { selecionarInstancia, registrarEnvio, registrarFalha as registrarFalhaInstancia } from './whatsapp-instances'
 
 export type TipoMensagem = 'whatsapp' | 'email'
 export type StatusMensagem = 'pendente' | 'enviando' | 'enviado' | 'falhou'
@@ -78,8 +80,25 @@ export async function processarProximaMensagem(): Promise<boolean> {
     let sucesso = false
 
     if (msg.tipo === 'whatsapp') {
-      const res = await enviarWhatsApp(msg.destino, msg.mensagem)
+      // Selecionar instância com menos uso (multi-instância)
+      const instancia = await selecionarInstancia()
+      const nomeInstancia = instancia?.nome
+      const res = await enviarWhatsApp(msg.destino, msg.mensagem, nomeInstancia)
       sucesso = res.success
+
+      // Registrar uso/falha na instância selecionada
+      if (instancia) {
+        if (sucesso) {
+          await registrarEnvio(instancia.id)
+          // Salvar qual instância enviou
+          await pool.query(
+            `UPDATE fila_mensagens SET instancia_id = $2 WHERE id = $1`,
+            [msg.id, instancia.id]
+          )
+        } else {
+          await registrarFalhaInstancia(instancia.id, res.error || 'Falha no envio')
+        }
+      }
     } else if (msg.tipo === 'email') {
       const res = await enviarEmail(msg.destino, msg.assunto || '', msg.mensagem)
       sucesso = res.success

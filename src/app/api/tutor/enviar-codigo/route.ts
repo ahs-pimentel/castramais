@@ -9,7 +9,7 @@ import { RATE_LIMITS } from '@/lib/constants'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { cpf, preferencia } = body
+    const { cpf, preferencia, esqueceuSenha } = body
 
     if (!cpf) {
       return NextResponse.json({ error: 'CPF é obrigatório' }, { status: 400 })
@@ -32,9 +32,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Muitas tentativas. Tente novamente em 15 minutos.' }, { status: 429 })
     }
 
-    // Buscar tutor por CPF usando raw SQL
+    // Buscar tutor por CPF
     const result = await pool.query(
-      'SELECT id, nome, cpf, telefone, email FROM tutores WHERE cpf = $1',
+      'SELECT id, nome, cpf, telefone, email, senha_hash FROM tutores WHERE cpf = $1',
       [cpfLimpo]
     )
 
@@ -46,6 +46,16 @@ export async function POST(request: NextRequest) {
         message: 'Código enviado',
         codigoEnviado: true,
         metodoEnvio: 'whatsapp',
+      })
+    }
+
+    const temSenha = !!tutor.senha_hash
+
+    // Se tutor tem senha e não está esquecendo, retorna sem enviar OTP
+    if (temSenha && !esqueceuSenha) {
+      return NextResponse.json({
+        temSenha: true,
+        message: 'Tutor possui senha cadastrada',
       })
     }
 
@@ -79,9 +89,10 @@ export async function POST(request: NextRequest) {
       telefone: telefoneMascarado,
       email: emailMascarado,
       temEmail: !!tutor.email,
+      temSenha,
+      esqueceuSenha: !!esqueceuSenha,
       codigoEnviado: resultado.success,
       metodoEnvio: resultado.metodo,
-      // Em dev, retorna o código para facilitar testes
       ...(process.env.NODE_ENV === 'development' && { codigo }),
     })
   } catch (error) {
