@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowRight, Loader2, Smartphone, UserPlus, Lock, Eye, EyeOff, KeyRound } from 'lucide-react'
 import { formatCPF, validateCPF } from '@/lib/utils'
+import { useFirebasePhoneAuth } from '@/hooks/useFirebasePhoneAuth'
 
 type Etapa = 'cpf' | 'senha' | 'otp-enviando'
 
 export default function TutorLoginPage() {
   const router = useRouter()
+  const { sendOTP, loading: firebaseLoading, error: firebaseError } = useFirebasePhoneAuth()
   const [cpf, setCpf] = useState('')
   const [senha, setSenha] = useState('')
   const [mostrarSenha, setMostrarSenha] = useState(false)
@@ -40,6 +42,7 @@ export default function TutorLoginPage() {
 
     setLoading(true)
     try {
+      // Buscar dados do tutor (telefone, status de senha)
       const res = await fetch('/api/tutor/enviar-codigo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -57,19 +60,36 @@ export default function TutorLoginPage() {
       if (data.temSenha) {
         // Tutor tem senha → mostrar campo de senha
         setEtapa('senha')
+        setLoading(false)
       } else if (res.ok) {
-        // Tutor sem senha → OTP enviado, ir para verificação
-        sessionStorage.setItem('tutor_cpf', cpf)
-        sessionStorage.setItem('tutor_telefone', data.telefone || '')
-        sessionStorage.setItem('tutor_metodo', data.metodoEnvio || 'whatsapp')
-        sessionStorage.setItem('tutor_tem_email', data.temEmail ? 'true' : 'false')
-        router.push('/tutor/verificar')
+        // Tutor sem senha → Enviar OTP via Firebase SMS
+        const telefone = data.telefone?.replace(/\D/g, '') || ''
+        
+        if (!telefone) {
+          setError('Telefone não encontrado. Entre em contato com o suporte.')
+          setLoading(false)
+          return
+        }
+
+        try {
+          // Enviar OTP via Firebase
+          await sendOTP(telefone)
+          
+          // Salvar dados na sessão e redirecionar
+          sessionStorage.setItem('tutor_cpf', cpf)
+          sessionStorage.setItem('tutor_telefone', telefone)
+          sessionStorage.setItem('tutor_metodo', 'sms')
+          router.push('/tutor/verificar')
+        } catch (firebaseErr) {
+          setError(firebaseError || 'Erro ao enviar código SMS')
+        }
+        setLoading(false)
       } else {
         setError(data.error || 'Erro ao verificar CPF')
+        setLoading(false)
       }
     } catch {
       setError('Erro ao conectar. Tente novamente.')
-    } finally {
       setLoading(false)
     }
   }
@@ -108,11 +128,12 @@ export default function TutorLoginPage() {
     }
   }
 
-  // Esqueci minha senha → envia OTP
+  // Esqueci minha senha → envia OTP via Firebase SMS
   const handleEsqueceuSenha = async () => {
     setError('')
     setLoading(true)
     try {
+      // Buscar telefone do tutor
       const res = await fetch('/api/tutor/enviar-codigo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -122,12 +143,26 @@ export default function TutorLoginPage() {
       const data = await res.json()
 
       if (res.ok) {
-        sessionStorage.setItem('tutor_cpf', cpf)
-        sessionStorage.setItem('tutor_telefone', data.telefone || '')
-        sessionStorage.setItem('tutor_metodo', data.metodoEnvio || 'whatsapp')
-        sessionStorage.setItem('tutor_tem_email', data.temEmail ? 'true' : 'false')
-        sessionStorage.setItem('tutor_esqueceu_senha', 'true')
-        router.push('/tutor/verificar')
+        const telefone = data.telefone?.replace(/\D/g, '') || ''
+        
+        if (!telefone) {
+          setError('Telefone não encontrado. Entre em contato com o suporte.')
+          setLoading(false)
+          return
+        }
+
+        try {
+          // Enviar OTP via Firebase
+          await sendOTP(telefone)
+          
+          sessionStorage.setItem('tutor_cpf', cpf)
+          sessionStorage.setItem('tutor_telefone', telefone)
+          sessionStorage.setItem('tutor_metodo', 'sms')
+          sessionStorage.setItem('tutor_esqueceu_senha', 'true')
+          router.push('/tutor/verificar')
+        } catch (firebaseErr) {
+          setError(firebaseError || 'Erro ao enviar código SMS')
+        }
       } else {
         setError(data.error || 'Erro ao enviar código')
       }
@@ -140,6 +175,9 @@ export default function TutorLoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      {/* reCAPTCHA container (invisível) */}
+      <div id="recaptcha-container"></div>
+      
       {/* Header */}
       <div className="pt-12 pb-8 px-6 text-center">
         <img

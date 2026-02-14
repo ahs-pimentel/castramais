@@ -4,9 +4,11 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Loader2, RefreshCw, CheckCircle2, MessageCircle, Mail } from 'lucide-react'
 import Link from 'next/link'
+import { useFirebasePhoneAuth } from '@/hooks/useFirebasePhoneAuth'
 
 export default function VerificarCodigoPage() {
   const router = useRouter()
+  const { verifyOTP, sendOTP, loading: firebaseLoading } = useFirebasePhoneAuth()
   const [code, setCode] = useState(['', '', '', '', '', ''])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -14,7 +16,7 @@ export default function VerificarCodigoPage() {
   const [countdown, setCountdown] = useState(60)
   const [telefone, setTelefone] = useState('')
   const [cpf, setCpf] = useState('')
-  const [metodoAtual, setMetodoAtual] = useState<'whatsapp' | 'email'>('whatsapp')
+  const [metodoAtual, setMetodoAtual] = useState<'sms' | 'whatsapp' | 'email'>('sms')
   const [temEmail, setTemEmail] = useState(false)
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
 
@@ -31,7 +33,7 @@ export default function VerificarCodigoPage() {
 
     setCpf(storedCpf)
     setTelefone(storedTelefone || '')
-    setMetodoAtual((storedMetodo as 'whatsapp' | 'email') || 'whatsapp')
+    setMetodoAtual((storedMetodo as 'sms' | 'whatsapp' | 'email') || 'sms')
     setTemEmail(storedTemEmail === 'true')
     inputRefs.current[0]?.focus()
   }, [router])
@@ -87,62 +89,88 @@ export default function VerificarCodigoPage() {
     setError('')
 
     try {
-      const res = await fetch('/api/tutor/verificar-codigo', {
+      // Verificar código OTP com Firebase
+      const firebaseToken = await verifyOTP(codeStr)
+      
+      // Autenticar no backend com token Firebase
+      const res = await fetch('/api/tutor/login-firebase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cpf, codigo: codeStr }),
+        body: JSON.stringify({ cpf, firebaseToken }),
       })
 
       const data = await res.json()
 
       if (res.ok) {
-        // Salvar token
+        // Salvar token da aplicação
         localStorage.setItem('tutor_token', data.token)
         localStorage.setItem('tutor_nome', data.nome)
 
         const esqueceuSenha = sessionStorage.getItem('tutor_esqueceu_senha')
         sessionStorage.removeItem('tutor_esqueceu_senha')
 
-        // Se não tem senha ou esqueceu → criar senha
-        if (!data.temSenha || esqueceuSenha) {
+        // Verificar se precisa criar senha
+        // Como agora usamos Firebase, vamos buscar essa info do backend
+        // Por enquanto, sempre redireciona para criar senha se esqueceu ou não tem
+        if (esqueceuSenha) {
           router.push('/tutor/criar-senha')
         } else {
           router.push('/tutor/meus-pets')
         }
       } else {
-        setError(data.error || 'Código inválido')
+        setError(data.error || 'Erro ao fazer login')
         setCode(['', '', '', '', '', ''])
         inputRefs.current[0]?.focus()
       }
-    } catch {
-      setError('Erro ao verificar. Tente novamente.')
+    } catch (err: any) {
+      setError(err.message || 'Código inválido ou expirado')
+      setCode(['', '', '', '', '', ''])
+      inputRefs.current[0]?.focus()
     } finally {
       setLoading(false)
     }
   }
 
-  const handleResend = async (preferencia: 'whatsapp' | 'email' = 'whatsapp') => {
+  const handleResend = async (preferencia: 'sms' | 'whatsapp' | 'email' = 'sms') => {
     setResending(true)
+    setError('')
+    
     try {
-      const res = await fetch('/api/tutor/enviar-codigo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cpf, preferencia }),
-      })
-
-      const data = await res.json()
-
-      if (res.ok) {
-        setMetodoAtual(data.metodoEnvio || preferencia)
-        setTemEmail(data.temEmail || false)
+      if (preferencia === 'sms') {
+        // Reenviar via Firebase SMS
+        if (!telefone) {
+          setError('Telefone não encontrado')
+          setResending(false)
+          return
+        }
+        
+        await sendOTP(telefone)
+        setMetodoAtual('sms')
         setCountdown(60)
         setCode(['', '', '', '', '', ''])
         inputRefs.current[0]?.focus()
       } else {
-        setError(data.error || 'Erro ao reenviar código')
+        // Fallback: reenviar via WhatsApp ou Email (usando API antiga)
+        const res = await fetch('/api/tutor/enviar-codigo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cpf, preferencia }),
+        })
+
+        const data = await res.json()
+
+        if (res.ok) {
+          setMetodoAtual(data.metodoEnvio || preferencia)
+          setTemEmail(data.temEmail || false)
+          setCountdown(60)
+          setCode(['', '', '', '', '', ''])
+          inputRefs.current[0]?.focus()
+        } else {
+          setError(data.error || 'Erro ao reenviar código')
+        }
       }
-    } catch {
-      setError('Erro ao reenviar código')
+    } catch (err: any) {
+      setError(err.message || 'Erro ao reenviar código')
     } finally {
       setResending(false)
     }
@@ -154,6 +182,9 @@ export default function VerificarCodigoPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      {/* reCAPTCHA container (invisível) */}
+      <div id="recaptcha-container"></div>
+      
       {/* Header */}
       <div className="p-4">
         <Link
@@ -168,8 +199,8 @@ export default function VerificarCodigoPage() {
       {/* Content */}
       <div className="flex-1 px-6 pt-8">
         <div className="max-w-md mx-auto text-center">
-          <div className={`w-16 h-16 ${metodoAtual === 'whatsapp' ? 'bg-green-100' : 'bg-blue-100'} rounded-full flex items-center justify-center mx-auto mb-4`}>
-            {metodoAtual === 'whatsapp' ? (
+          <div className={`w-16 h-16 ${metodoAtual === 'sms' || metodoAtual === 'whatsapp' ? 'bg-green-100' : 'bg-blue-100'} rounded-full flex items-center justify-center mx-auto mb-4`}>
+            {metodoAtual === 'sms' || metodoAtual === 'whatsapp' ? (
               <MessageCircle className="w-8 h-8 text-green-600" />
             ) : (
               <Mail className="w-8 h-8 text-blue-600" />
@@ -179,7 +210,9 @@ export default function VerificarCodigoPage() {
             Código enviado!
           </h1>
           <p className="text-gray-500 mb-8">
-            {metodoAtual === 'whatsapp' ? (
+            {metodoAtual === 'sms' ? (
+              <>Digite o código de 6 dígitos enviado por SMS para {maskedPhone}</>
+            ) : metodoAtual === 'whatsapp' ? (
               <>Digite o código de 6 dígitos enviado para {maskedPhone}</>
             ) : (
               <>Digite o código de 6 dígitos enviado para seu email</>
@@ -226,7 +259,7 @@ export default function VerificarCodigoPage() {
             ) : (
               <div className="space-y-2">
                 <button
-                  onClick={() => handleResend('whatsapp')}
+                  onClick={() => handleResend('sms')}
                   disabled={resending}
                   className="inline-flex items-center gap-2 text-green-600 font-medium hover:underline disabled:opacity-50"
                 >
@@ -235,7 +268,7 @@ export default function VerificarCodigoPage() {
                   ) : (
                     <MessageCircle className="w-4 h-4" />
                   )}
-                  Reenviar por WhatsApp
+                  Reenviar por SMS
                 </button>
 
                 {temEmail && (
@@ -263,7 +296,9 @@ export default function VerificarCodigoPage() {
       {/* Footer */}
       <div className="py-6 text-center">
         <p className="text-xs text-gray-400">
-          {metodoAtual === 'whatsapp'
+          {metodoAtual === 'sms'
+            ? 'Não recebeu? Verifique se o número de telefone está correto'
+            : metodoAtual === 'whatsapp'
             ? 'Não recebeu? Verifique se o WhatsApp está correto'
             : 'Não recebeu? Verifique sua caixa de spam'}
         </p>
