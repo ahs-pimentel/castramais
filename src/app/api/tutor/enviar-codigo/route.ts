@@ -75,18 +75,15 @@ export async function POST(request: NextRequest) {
       console.log(`[CÓDIGO TUTOR] CPF: ${cpfLimpo} | Código: ${codigo} | Método: ${resultado.metodo}`)
     }
 
-    // Mascarar telefone e email para retorno
-    const telefoneMascarado = tutor.telefone
-      ? `${tutor.telefone.slice(0, 2)}*****${tutor.telefone.slice(-4)}`
-      : null
-
+    // Retornar telefone completo (sem máscara) para uso com Firebase
+    // O frontend precisa do número completo para enviar SMS
     const emailMascarado = tutor.email
       ? `${tutor.email.slice(0, 3)}***@${tutor.email.split('@')[1]}`
       : null
 
     return NextResponse.json({
       message: 'Código enviado',
-      telefone: telefoneMascarado,
+      telefone: tutor.telefone, // Retorna número completo para Firebase
       email: emailMascarado,
       temEmail: !!tutor.email,
       temSenha,
