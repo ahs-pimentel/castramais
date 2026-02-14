@@ -76,6 +76,8 @@ export function useFirebasePhoneAuth(): UseFirebasePhoneAuthReturn {
         setError('Número de telefone não fornecido');
       } else if (errorCode === 'auth/operation-not-allowed') {
         setError('Autenticação por telefone não está habilitada. Contate o suporte.');
+      } else if (errorCode === 'auth/billing-not-enabled') {
+        setError('Serviço de SMS temporariamente indisponível. Por favor, tente novamente mais tarde ou entre em contato pelo WhatsApp.');
       } else {
         setError(`Erro ao enviar código: ${err.message || 'Tente novamente'}`);
       }

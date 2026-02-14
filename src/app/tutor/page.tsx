@@ -80,8 +80,16 @@ export default function TutorLoginPage() {
           sessionStorage.setItem('tutor_telefone', telefone)
           sessionStorage.setItem('tutor_metodo', 'sms')
           router.push('/tutor/verificar')
-        } catch (firebaseErr) {
-          setError(firebaseError || 'Erro ao enviar código SMS')
+        } catch (firebaseErr: any) {
+          // Se o erro for de billing, redireciona para verificação (WhatsApp já foi enviado pela API)
+          if (firebaseErr?.code === 'auth/billing-not-enabled') {
+            sessionStorage.setItem('tutor_cpf', cpf)
+            sessionStorage.setItem('tutor_telefone', data.telefone || '')
+            sessionStorage.setItem('tutor_metodo', 'whatsapp')
+            router.push('/tutor/verificar')
+          } else {
+            setError(firebaseError || 'Erro ao enviar código SMS')
+          }
         }
         setLoading(false)
       } else {
@@ -160,8 +168,17 @@ export default function TutorLoginPage() {
           sessionStorage.setItem('tutor_metodo', 'sms')
           sessionStorage.setItem('tutor_esqueceu_senha', 'true')
           router.push('/tutor/verificar')
-        } catch (firebaseErr) {
-          setError(firebaseError || 'Erro ao enviar código SMS')
+        } catch (firebaseErr: any) {
+          // Se o erro for de billing, redireciona para verificação (WhatsApp já foi enviado pela API)
+          if (firebaseErr?.code === 'auth/billing-not-enabled') {
+            sessionStorage.setItem('tutor_cpf', cpf)
+            sessionStorage.setItem('tutor_telefone', data.telefone || '')
+            sessionStorage.setItem('tutor_metodo', 'whatsapp')
+            sessionStorage.setItem('tutor_esqueceu_senha', 'true')
+            router.push('/tutor/verificar')
+          } else {
+            setError(firebaseError || 'Erro ao enviar código SMS')
+          }
         }
       } else {
         setError(data.error || 'Erro ao enviar código')

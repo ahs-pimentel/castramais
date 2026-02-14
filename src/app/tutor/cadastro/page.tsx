@@ -171,8 +171,14 @@ export default function TutorCadastroPage() {
           sessionStorage.setItem('tutor_telefone', telefoneLimpo)
           sessionStorage.setItem('tutor_metodo', 'sms')
           router.push('/tutor/verificar')
-        } catch (firebaseErr) {
-          setError(firebaseError || 'Erro ao enviar código SMS. Cadastro realizado, tente fazer login.')
+        } catch (firebaseErr: any) {
+          // Se billing não habilitado, ainda permite continuar (mostra mensagem mas redireciona)
+          if (firebaseErr?.code === 'auth/billing-not-enabled') {
+            alert('SMS indisponível no momento. Por favor, faça login usando WhatsApp.');
+            router.push('/tutor');
+          } else {
+            setError(firebaseError || 'Erro ao enviar código SMS. Cadastro realizado, tente fazer login.');
+          }
         }
       } else {
         setError(data.error || 'Erro ao realizar cadastro')
