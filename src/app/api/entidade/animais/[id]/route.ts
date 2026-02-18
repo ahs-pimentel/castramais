@@ -142,40 +142,48 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // Notificar tutor se status mudou para agendado
     let whatsappData = null
 
-    if (body.status === 'agendado' && animalAnterior.status !== 'agendado' && animalAnterior.tutor_telefone && animalAnterior.tutor_nome) {
-      const especieNotif = animalAtualizado.especie === 'cachorro' ? 'canino' : 'felino'
-      // Formatar data corretamente interpretando como timezone local, não UTC
-      if (animalAtualizado.dataAgendamento) {
-        const datePart = String(animalAtualizado.dataAgendamento).split('T')[0]
-        const [year, month, day] = datePart.split('-')
-        const dataDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
-        const dataFormatada = dataDate.toLocaleDateString('pt-BR')
-        const mensagem = gerarMensagemAgendamento(
-          animalAnterior.tutor_nome,
-          animalAtualizado.nome,
-          especieNotif,
-          dataFormatada,
-          animalAtualizado.horarioAgendamento || 'A confirmar',
-          animalAtualizado.localAgendamento || 'A confirmar',
-          animalAtualizado.enderecoAgendamento || 'A confirmar'
-        )
-        whatsappData = {
-          telefone: animalAnterior.tutor_telefone,
-          mensagem,
+    try {
+      if (body.status === 'agendado' && animalAnterior.status !== 'agendado' && animalAnterior.tutor_telefone && animalAnterior.tutor_nome) {
+        const especieNotif = animalAtualizado.especie === 'cachorro' ? 'canino' : 'felino'
+        // Formatar data corretamente interpretando como timezone local, não UTC
+        if (animalAtualizado.dataAgendamento) {
+          try {
+            const datePart = String(animalAtualizado.dataAgendamento).split('T')[0]
+            const [year, month, day] = datePart.split('-')
+            const dataDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+            const dataFormatada = dataDate.toLocaleDateString('pt-BR')
+            const mensagem = gerarMensagemAgendamento(
+              animalAnterior.tutor_nome,
+              animalAtualizado.nome,
+              especieNotif,
+              dataFormatada,
+              animalAtualizado.horarioAgendamento || 'A confirmar',
+              animalAtualizado.localAgendamento || 'A confirmar',
+              animalAtualizado.enderecoAgendamento || 'A confirmar'
+            )
+            whatsappData = {
+              telefone: animalAnterior.tutor_telefone,
+              mensagem,
+            }
+            // Envia apenas email automaticamente
+            notificarAgendamento(
+              animalAnterior.tutor_telefone,
+              animalAnterior.tutor_email,
+              animalAnterior.tutor_nome,
+              animalAtualizado.nome,
+              especieNotif,
+              dataFormatada,
+              animalAtualizado.horarioAgendamento || 'A confirmar',
+              animalAtualizado.localAgendamento || 'A confirmar',
+              animalAtualizado.enderecoAgendamento || 'A confirmar'
+            ).catch(err => console.error('Erro ao enviar notificação de agendamento:', err))
+          } catch (err) {
+            console.error('Erro ao processar notificação de agendamento:', err)
+          }
         }
-        // Envia apenas email automaticamente
-        notificarAgendamento(
-          animalAnterior.tutor_telefone,
-          animalAnterior.tutor_email,
-          animalAnterior.tutor_nome,
-          animalAtualizado.nome,
-          especieNotif,
-          dataFormatada,
-          animalAtualizado.horarioAgendamento || 'A confirmar',
-          animalAtualizado.localAgendamento || 'A confirmar',
-          animalAtualizado.enderecoAgendamento || 'A confirmar'
-        ).catch(err => console.error('Erro ao enviar notificação de agendamento:', err))
       }
+    } catch (notificationError) {
+      console.error('Erro geral ao processar notificações da entidade:', notificationError)
     }
 
     return NextResponse.json({ ...animalAtualizado, whatsappData })
