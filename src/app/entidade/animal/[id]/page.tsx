@@ -196,7 +196,13 @@ export default function EntidadeAnimalDetalhePage({ params }: { params: Promise<
     return phone
   }
 
-  const formatDate = (date: string) => new Date(date).toLocaleDateString('pt-BR')
+  const formatDate = (date: string) => {
+    // Formatar data corretamente interpretando como timezone local, não UTC
+    const datePart = date.split('T')[0]
+    const [year, month, day] = datePart.split('-')
+    const d = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+    return d.toLocaleDateString('pt-BR')
+  }
 
   if (loading) {
     return (

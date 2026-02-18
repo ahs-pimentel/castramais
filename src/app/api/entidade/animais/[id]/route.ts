@@ -144,7 +144,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     if (body.status === 'agendado' && animalAnterior.status !== 'agendado' && animalAnterior.tutor_telefone) {
       const especieNotif = animalAtualizado.especie === 'cachorro' ? 'canino' : 'felino'
-      const dataFormatada = new Date(animalAtualizado.dataAgendamento).toLocaleDateString('pt-BR')
+      // Formatar data corretamente interpretando como timezone local, não UTC
+      const datePart = animalAtualizado.dataAgendamento.split('T')[0]
+      const [year, month, day] = datePart.split('-')
+      const dataDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+      const dataFormatada = dataDate.toLocaleDateString('pt-BR')
       const mensagem = gerarMensagemAgendamento(
         animalAnterior.tutor_nome,
         animalAtualizado.nome,

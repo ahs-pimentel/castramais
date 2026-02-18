@@ -98,7 +98,14 @@ const CORES = {
 
 function formatarData(data: string | undefined): string {
   if (!data) return '-'
-  return new Date(data).toLocaleDateString('pt-BR')
+  
+  // Remove hora se existir (YYYY-MM-DD ou YYYY-MM-DDTHH:MM:SS)
+  const datePart = data.split('T')[0]
+  const [year, month, day] = datePart.split('-')
+  // Cria date usando construtor com componentes locais para evitar interpretação como UTC
+  const d = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+  
+  return d.toLocaleDateString('pt-BR')
 }
 
 function formatarCPF(cpf: string): string {

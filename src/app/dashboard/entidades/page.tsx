@@ -229,7 +229,10 @@ export default function EntidadesPage() {
   }
 
   const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('pt-BR')
+    const datePart = date.split('T')[0]
+    const [year, month, day] = datePart.split('-')
+    const d = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+    return d.toLocaleDateString('pt-BR')
   }
 
   if (loading) {

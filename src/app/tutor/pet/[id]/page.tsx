@@ -108,13 +108,24 @@ export default function PetDetalhesPage({ params }: { params: Promise<PageParams
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return null
-    const date = new Date(dateStr)
+    // Formatar data corretamente interpretando como timezone local, não UTC
+    const datePart = dateStr.split('T')[0]
+    const [year, month, day] = datePart.split('-')
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
     return date.toLocaleDateString('pt-BR', {
       weekday: 'long',
       day: '2-digit',
       month: 'long',
       year: 'numeric',
     })
+  }
+
+  const formatDateShort = (dateStr: string | null) => {
+    if (!dateStr) return null
+    const datePart = dateStr.split('T')[0]
+    const [year, month, day] = datePart.split('-')
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+    return date.toLocaleDateString('pt-BR')
   }
 
   const formatAge = () => {
@@ -212,7 +223,7 @@ export default function PetDetalhesPage({ params }: { params: Promise<PageParams
               <div className="pb-4">
                 <p className="font-medium text-gray-900">Cadastrado no sistema</p>
                 <p className="text-sm text-gray-500">
-                  {new Date(animal.createdAt).toLocaleDateString('pt-BR')}
+                  {formatDateShort(animal.createdAt)}
                 </p>
               </div>
             </div>
@@ -235,7 +246,7 @@ export default function PetDetalhesPage({ params }: { params: Promise<PageParams
                 </p>
                 <p className="text-sm text-gray-500">
                   {animal.dataAgendamento
-                    ? new Date(animal.dataAgendamento).toLocaleDateString('pt-BR')
+                    ? formatDateShort(animal.dataAgendamento)
                     : 'Aguardando'}
                 </p>
               </div>
@@ -258,7 +269,7 @@ export default function PetDetalhesPage({ params }: { params: Promise<PageParams
                 </p>
                 <p className="text-sm text-gray-500">
                   {animal.dataRealizacao
-                    ? new Date(animal.dataRealizacao).toLocaleDateString('pt-BR')
+                    ? formatDateShort(animal.dataRealizacao)
                     : 'Pendente'}
                 </p>
               </div>

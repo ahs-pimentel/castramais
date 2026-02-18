@@ -20,7 +20,19 @@ export function formatPhone(phone: string): string {
 
 export function formatDate(date: string | Date | null): string {
   if (!date) return ''
-  const d = new Date(date)
+  let d: Date
+  
+  if (typeof date === 'string') {
+    // Remove hora se existir (YYYY-MM-DD ou YYYY-MM-DDTHH:MM:SS)
+    const datePart = date.split('T')[0]
+    const [year, month, day] = datePart.split('-')
+    // Cria date usando construtor com componentes locais
+    // Isso evita a interpretação como UTC
+    d = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+  } else {
+    d = new Date(date)
+  }
+  
   return d.toLocaleDateString('pt-BR')
 }
 

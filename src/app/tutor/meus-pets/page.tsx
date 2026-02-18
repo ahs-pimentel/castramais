@@ -117,7 +117,9 @@ export default function MeusPetsPage() {
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return null
-    const date = new Date(dateStr)
+    const datePart = dateStr.split('T')[0]
+    const [year, month, day] = datePart.split('-')
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
     return date.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: 'short',

@@ -121,7 +121,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
       // Status: agendado → Gerar mensagem para WhatsApp Web + enviar email
       if (body.status === 'agendado' && animalAtualizado.dataAgendamento) {
-        const dataFormatada = new Date(animalAtualizado.dataAgendamento).toLocaleDateString('pt-BR')
+        // Formatar data corretamente interpretando como timezone local, não UTC
+        const datePart = animalAtualizado.dataAgendamento.split('T')[0]
+        const [year, month, day] = datePart.split('-')
+        const dataDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+        const dataFormatada = dataDate.toLocaleDateString('pt-BR')
         const mensagem = gerarMensagemAgendamento(
           animalAnterior.tutor_nome,
           animalAtualizado.nome,
