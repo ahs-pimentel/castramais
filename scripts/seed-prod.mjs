@@ -71,7 +71,7 @@ async function seed() {
         especie VARCHAR(20) NOT NULL,
         raca VARCHAR(100) NOT NULL,
         sexo VARCHAR(10) NOT NULL,
-        peso DECIMAL(5,2),
+        peso DECIMAL(10,2),
         "idadeAnos" INTEGER,
         "idadeMeses" INTEGER,
         "registroSinpatinhas" VARCHAR(100) UNIQUE,
