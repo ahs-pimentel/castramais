@@ -142,6 +142,11 @@ export default function EntidadeAnimalDetalhePage({ params }: { params: Promise<
         setSaving(false)
         return
       }
+      if (!animal.tutor || !animal.tutor.telefone) {
+        setError('Animal não possui tutor associado. Não é possível agendar.')
+        setSaving(false)
+        return
+      }
       payload.status = 'agendado'
       payload.dataAgendamento = agendamento.dataAgendamento
       payload.horarioAgendamento = agendamento.horarioAgendamento

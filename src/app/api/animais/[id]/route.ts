@@ -59,6 +59,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params
     const body = await request.json()
+    
+    // Debug log
+    console.log('PUT /api/animais/[id] - Animal ID:', id)
+    console.log('PUT /api/animais/[id] - Request body:', JSON.stringify(body, null, 2))
 
     // Buscar animal atual com dados do tutor para notificações
     const existingResult = await pool.query(
@@ -82,14 +86,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
-        const dbField = ['idadeAnos', 'idadeMeses', 'registroSinpatinhas', 'dataAgendamento', 'dataRealizacao', 'localAgendamento', 'enderecoAgendamento', 'horarioAgendamento', 'campanhaId'].includes(field)
-          ? `"${field}"`
-          : field
+        // Todos os campos precisam de aspas em PostgreSQL se tiverem maiúsculas
+        const dbField = field.toLowerCase() === field ? field : `"${field}"`
         updateFields.push(`${dbField} = $${paramIndex}`)
         values.push(body[field])
         paramIndex++
       }
     }
+    
+    console.log('PUT /api/animais/[id] - Update fields:', updateFields)
+    console.log('PUT /api/animais/[id] - Values to update:', values)
 
     if (updateFields.length === 0) {
       return NextResponse.json({ error: 'Nenhum campo para atualizar' }, { status: 400 })
@@ -116,13 +122,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // Notificações baseadas na mudança de status
     let whatsappData = null
 
-    if (animalAnterior.tutor_telefone && body.status && body.status !== animalAnterior.status) {
+    if (animalAnterior.tutor_telefone && animalAnterior.tutor_nome && body.status && body.status !== animalAnterior.status) {
       const especieNotif = animalAtualizado.especie === 'cachorro' ? 'canino' : 'felino'
 
       // Status: agendado → Gerar mensagem para WhatsApp Web + enviar email
       if (body.status === 'agendado' && animalAtualizado.dataAgendamento) {
         // Formatar data corretamente interpretando como timezone local, não UTC
-        const datePart = animalAtualizado.dataAgendamento.split('T')[0]
+        const datePart = String(animalAtualizado.dataAgendamento).split('T')[0]
         const [year, month, day] = datePart.split('-')
         const dataDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
         const dataFormatada = dataDate.toLocaleDateString('pt-BR')
