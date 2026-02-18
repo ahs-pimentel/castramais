@@ -4,9 +4,10 @@ import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
-import { ArrowLeft, Trash2, Loader2, Phone, Mail, MapPin, Calendar, PawPrint, Eye } from 'lucide-react'
+import { ArrowLeft, Trash2, Loader2, Phone, Mail, MapPin, Calendar, PawPrint, Eye, Edit2, Save, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 
 type PageParams = { id: string }
 
@@ -48,6 +49,18 @@ export default function TutorDetailPage({ params }: { params: Promise<PageParams
   const [tutor, setTutor] = useState<Tutor | null>(null)
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
+  const [editMode, setEditMode] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [editError, setEditError] = useState('')
+  const [editSuccess, setEditSuccess] = useState('')
+  const [editData, setEditData] = useState({
+    nome: '',
+    telefone: '',
+    email: '',
+    endereco: '',
+    cidade: '',
+    bairro: '',
+  })
 
   useEffect(() => {
     const fetchTutor = async () => {
@@ -56,6 +69,14 @@ export default function TutorDetailPage({ params }: { params: Promise<PageParams
         if (res.ok) {
           const data = await res.json()
           setTutor(data)
+          setEditData({
+            nome: data.nome,
+            telefone: data.telefone,
+            email: data.email || '',
+            endereco: data.endereco,
+            cidade: data.cidade,
+            bairro: data.bairro,
+          })
         } else {
           router.push('/dashboard/tutores')
         }
@@ -92,6 +113,65 @@ export default function TutorDetailPage({ params }: { params: Promise<PageParams
     } finally {
       setDeleting(false)
     }
+  }
+
+  const handleSaveEdit = async () => {
+    setEditError('')
+    setEditSuccess('')
+
+    // Validações básicas
+    if (!editData.nome.trim()) {
+      setEditError('Nome é obrigatório')
+      return
+    }
+    if (!editData.telefone.replace(/\D/g, '')) {
+      setEditError('Telefone é obrigatório')
+      return
+    }
+    if (editData.telefone.replace(/\D/g, '').length < 10) {
+      setEditError('Telefone deve ter no mínimo 10 dígitos')
+      return
+    }
+
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/admin/tutores/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editData),
+      })
+
+      if (res.ok) {
+        const updated = await res.json()
+        setTutor(prev => prev ? { ...prev, ...updated } : null)
+        setEditMode(false)
+        setEditSuccess('Dados do tutor atualizados com sucesso!')
+        setTimeout(() => setEditSuccess(''), 3000)
+      } else {
+        const data = await res.json()
+        setEditError(data.error || 'Erro ao salvar')
+      }
+    } catch (error) {
+      console.error('Erro ao salvar:', error)
+      setEditError('Erro ao salvar. Tente novamente.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    if (tutor) {
+      setEditData({
+        nome: tutor.nome,
+        telefone: tutor.telefone,
+        email: tutor.email || '',
+        endereco: tutor.endereco,
+        cidade: tutor.cidade,
+        bairro: tutor.bairro,
+      })
+    }
+    setEditMode(false)
+    setEditError('')
   }
 
   const formatCPF = (cpf: string) => {
@@ -137,69 +217,179 @@ export default function TutorDetailPage({ params }: { params: Promise<PageParams
           </Link>
           <h1 className="text-xl font-semibold text-gray-900">{tutor.nome}</h1>
         </div>
-        {role === 'admin' && (
-          <Button
-            variant="danger"
-            size="sm"
-            onClick={handleDelete}
-            disabled={deleting}
-          >
-            {deleting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <>
-                <Trash2 className="w-4 h-4 mr-2" />
-                Excluir
-              </>
-            )}
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {role === 'admin' && !editMode && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditMode(true)}
+            >
+              <Edit2 className="w-4 h-4 mr-2" />
+              Editar
+            </Button>
+          )}
+          {editMode && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCancelEdit}
+                disabled={saving}
+              >
+                <X className="w-4 h-4 mr-2" />
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSaveEdit}
+                disabled={saving}
+              >
+                {saving ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4 mr-2" />
+                )}
+                Salvar
+              </Button>
+            </>
+          )}
+          {role === 'admin' && !editMode && (
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Excluir
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         <div className="bg-white rounded-xl border border-gray-100 p-6 space-y-4">
           <h2 className="font-semibold text-gray-900">Dados do Tutor</h2>
 
-          <div className="space-y-3">
-            <div>
-              <span className="text-sm text-gray-500">CPF</span>
-              <p className="font-medium">{formatCPF(tutor.cpf)}</p>
+          {editError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+              {editError}
             </div>
+          )}
 
-            <div className="flex items-center gap-2">
-              <Phone className="w-4 h-4 text-gray-400" />
-              <a
-                href={`https://wa.me/55${tutor.telefone.replace(/\D/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                {formatPhone(tutor.telefone)}
-              </a>
+          {editSuccess && (
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-600">
+              {editSuccess}
             </div>
+          )}
 
-            {tutor.email && (
+          {editMode ? (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+                <Input
+                  value={editData.nome}
+                  onChange={e => setEditData({ ...editData, nome: e.target.value })}
+                  placeholder="Nome completo"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                <Input
+                  value={editData.telefone}
+                  onChange={e => setEditData({ ...editData, telefone: e.target.value.replace(/\D/g, '').slice(0, 11) })}
+                  placeholder="(11) 99999-9999"
+                  type="tel"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <Input
+                  value={editData.email}
+                  onChange={e => setEditData({ ...editData, email: e.target.value })}
+                  placeholder="email@example.com"
+                  type="email"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Endereço</label>
+                <Input
+                  value={editData.endereco}
+                  onChange={e => setEditData({ ...editData, endereco: e.target.value })}
+                  placeholder="Rua, número"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Bairro</label>
+                  <Input
+                    value={editData.bairro}
+                    onChange={e => setEditData({ ...editData, bairro: e.target.value })}
+                    placeholder="Bairro"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Cidade</label>
+                  <Input
+                    value={editData.cidade}
+                    onChange={e => setEditData({ ...editData, cidade: e.target.value })}
+                    placeholder="Cidade"
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div>
+                <span className="text-sm text-gray-500">CPF</span>
+                <p className="font-medium">{formatCPF(tutor.cpf)}</p>
+              </div>
+
               <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-gray-400" />
-                <a href={`mailto:${tutor.email}`} className="text-primary hover:underline">
-                  {tutor.email}
+                <Phone className="w-4 h-4 text-gray-400" />
+                <a
+                  href={`https://wa.me/55${tutor.telefone.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  {formatPhone(tutor.telefone)}
                 </a>
               </div>
-            )}
 
-            <div className="flex items-start gap-2">
-              <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
-              <div>
-                <p>{tutor.endereco}</p>
-                <p className="text-sm text-gray-500">{tutor.bairro}, {tutor.cidade}</p>
+              {tutor.email && (
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-gray-400" />
+                  <a href={`mailto:${tutor.email}`} className="text-primary hover:underline">
+                    {tutor.email}
+                  </a>
+                </div>
+              )}
+
+              <div className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
+                <div>
+                  <p>{tutor.endereco}</p>
+                  <p className="text-sm text-gray-500">{tutor.bairro}, {tutor.cidade}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Calendar className="w-4 h-4" />
+                Cadastrado em {formatDate(tutor.createdAt)}
               </div>
             </div>
-
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <Calendar className="w-4 h-4" />
-              Cadastrado em {formatDate(tutor.createdAt)}
-            </div>
-          </div>
+          )}
         </div>
 
         <div className="bg-white rounded-xl border border-gray-100 p-6 space-y-4">
