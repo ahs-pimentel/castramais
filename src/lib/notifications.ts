@@ -14,10 +14,10 @@ export { enviarWhatsApp, enviarEmail }
 // Humanização: variações de texto para evitar mensagens idênticas (anti-spam)
 const SAUDACOES = ['Olá', 'Oi', 'E aí', 'Oie']
 const FECHAMENTOS = [
-  '🐾 Castra+MG - Castração é um gesto de amor!',
-  '🐾 Castra+MG - Cuide de quem te ama!',
-  '🐾 Castra+MG - Seu pet agradece!',
-  '🐾 Castra+MG - Juntos pelo bem-estar animal!',
+  'Castra+MG - Castração é um gesto de amor!',
+  'Castra+MG - Cuide de quem te ama!',
+  'Castra+MG - Seu pet agradece!',
+  'Castra+MG - Juntos pelo bem-estar animal!',
 ]
 
 function saudacao(): string {
@@ -57,12 +57,12 @@ ${saudacao()}, *${nomeTutor}*!
 
 O cadastro do seu pet *${nomePet}* foi realizado com sucesso!
 
-📋 *Status:* Aguardando agendamento
+*Status:* Aguardando agendamento
 
-⚠️ *IMPORTANTE:* Para realizar o agendamento da castração, você precisará do *RG Animal (SinPatinhas)* do seu pet. É um cadastro gratuito do Governo Federal.
+*IMPORTANTE:* Para realizar o agendamento da castração, você precisará do *RG Animal (SinPatinhas)* do seu pet. É um cadastro gratuito do Governo Federal.
 
-📝 *Cadastre no SinPatinhas:*
-👉 sinpatinhas.mma.gov.br
+*Cadastre no SinPatinhas:*
+sinpatinhas.mma.gov.br
 
 Você será notificado assim que houver uma campanha de castração disponível na sua região.
 
@@ -90,15 +90,15 @@ ${saudacao()}, *${nomeTutor}*!
 
 O cadastro do seu pet *${nomePet}* foi realizado com sucesso!
 
-⚠️ *Status:* Lista de Espera
-📍 *Posição na fila:* ${posicaoFila}º
+*Status:* Lista de Espera
+*Posição na fila:* ${posicaoFila}º
 
 Infelizmente, as vagas para castração na sua cidade já foram preenchidas nesta campanha. Mas não se preocupe!
 
-✅ Seu cadastro está salvo e você será notificado assim que surgirem novas vagas ou uma nova campanha for aberta em sua região.
+Seu cadastro está salvo e você será notificado assim que surgirem novas vagas ou uma nova campanha for aberta em sua região.
 
-📝 *ATENÇÃO:* Para o agendamento, você precisará do *RG Animal (SinPatinhas)* do seu pet. Aproveite este período de espera para cadastrá-lo gratuitamente:
-👉 sinpatinhas.mma.gov.br
+*ATENÇÃO:* Para o agendamento, você precisará do *RG Animal (SinPatinhas)* do seu pet. Aproveite este período de espera para cadastrá-lo gratuitamente:
+sinpatinhas.mma.gov.br
 
 Fique atento ao seu WhatsApp!
 
@@ -123,34 +123,34 @@ export function gerarMensagemAgendamento(
     ? 'coleira/peitoral com guia + toalha ou cobertor'
     : 'caixa de transporte (OBRIGATÓRIO)'
 
-  return `*Castra+MG* - AGENDAMENTO CONFIRMADO! ✅
+  return `*Castra+MG* - AGENDAMENTO CONFIRMADO!
 
 ${saudacao()}, *${nomeTutor}*!
 
 Seu pet *${nomePet}* ${emoji} foi agendado para castração!
 
-📅 *Data:* ${dataAgendamento}
-⏰ *Horário:* ${horario}
-📍 *Local:* ${local}
-🗺️ *Endereço:* ${endereco}
+*Data:* ${dataAgendamento}
+*Horário:* ${horario}
+*Endereço:* ${endereco}
 
-⚠️ *ORIENTAÇÕES IMPORTANTES:*
+*ORIENTAÇÕES IMPORTANTES:*
 
-🍽️ *Jejum alimentar:* ${jejum} antes do procedimento
-💧 *Jejum de água:* ${jejum} antes do procedimento
-🎒 *Transporte:* ${transporte}
+*Jejum alimentar:* ${jejum} antes do procedimento
+*Jejum de água:* ${jejum} antes do procedimento
+*Transporte:* ${transporte}
 
-📝 *No dia, leve:*
+*No dia, leve:*
 - Documento de identificação com foto
 - Este comprovante de agendamento
+- Não esqueca de levar o RG Animal (SinPatinhas) do seu pet
 
 O responsável deve ser maior de idade e permanecer no local até a liberação do animal.
 
-❌ *Não poderá comparecer?*
+*Não poderá comparecer?*
 Avise com pelo menos 24h de antecedência pelo WhatsApp.
 
-💬 *Dúvidas?* Fale conosco:
-👉 wa.me/553121812062
+*Dúvidas?* Fale conosco:
+wa.me/553121812062
 
 ${fechamento()}`
 }
@@ -183,7 +183,7 @@ export async function notificarLembrete24h(
   nomePet: string,
   especie: string,
   horario: string,
-  local: string
+  endereco: string,
 ): Promise<void> {
   const emoji = especie.toLowerCase() === 'canino' ? '🐕' : '🐱'
   const jejum = especie.toLowerCase() === 'canino' ? '6 horas' : '4 horas'
@@ -194,10 +194,10 @@ ${saudacao()}, *${nomeTutor}*!
 
 A castração de *${nomePet}* ${emoji} é *AMANHÃ*!
 
-⏰ *Horário:* ${horario}
-📍 *Local:* ${local}
+*Horário:* ${horario}
+*Local:* ${endereco}
 
-⚠️ *NÃO ESQUEÇA:*
+*NÃO ESQUEÇA:*
 - Jejum alimentar e de água de ${jejum}
 - Documento de identificação
 - Manter o animal calmo na noite anterior
@@ -224,18 +224,18 @@ ${saudacao()}, *${nomeTutor}*!
 
 A castração de *${nomePet}* ${emoji} foi realizada com sucesso!
 
-💊 *CUIDADOS PÓS-OPERATÓRIOS:*
+*CUIDADOS PÓS-OPERATÓRIOS:*
 
-1️⃣ Mantenha o animal em local tranquilo e aquecido
-2️⃣ Ofereça água após 4 horas e alimento leve após 8 horas
-3️⃣ Não deixe lamber ou morder a ferida
-4️⃣ Mantenha a roupa cirúrgica ou colar por 10 dias
-5️⃣ Evite subir escadas e pular nos primeiros dias
-6️⃣ Observe se há inchaço excessivo, sangramento ou secreção
+1️Mantenha o animal em local tranquilo e aquecido
+2️ Ofereça água após 4 horas e alimento leve após 8 horas
+3️ Não deixe lamber ou morder a ferida
+4️ Mantenha a roupa cirúrgica ou colar por 10 dias
+5️ Evite subir escadas e pular nos primeiros dias
+6️ Observe se há inchaço excessivo, sangramento ou secreção
 
-⚠️ Em caso de emergência, procure um veterinário.
+Em caso de emergência, procure um veterinário.
 
-📅 *Retorno para retirada dos pontos:* 10 dias
+*Retorno para retirada dos pontos:* 10 dias
 
 Obrigado por participar do programa Castra+MG!
 
@@ -258,7 +258,7 @@ ${saudacao()}, *${nomeTutor}*!
 
 O agendamento de castração de *${nomePet}* foi cancelado.
 
-${motivo ? `📝 *Motivo:* ${motivo}\n` : ''}
+${motivo ? `*Motivo:* ${motivo}\n` : ''}
 Você pode realizar um novo cadastro quando houver disponibilidade de vagas.
 
 Em caso de dúvidas, entre em contato pelo WhatsApp.
@@ -281,10 +281,10 @@ ${saudacao()}, *${nomeTutor}*!
 
 Informamos que seu pet *${nomePet}* foi cadastrado no programa *Castra+MG* de castração gratuita!
 
-📋 *Próximos passos:*
+*Próximos passos:*
 Acesse o sistema para acompanhar o status do seu pet:
 
-👉 *castramaismg.org/tutor*
+*castramaismg.org/tutor*
 
 Basta informar seu CPF para acessar.
 

@@ -11,6 +11,8 @@ interface SearchFilterProps {
   onStatusChange: (value: string) => void
   campanha: string
   onCampanhaChange: (value: string) => void
+  animaisType: string
+  onAnimaisTypeChange: (value: string) => void
   campanhas: { id: string; nome: string; cidade: string }[]
 }
 
@@ -23,13 +25,21 @@ const statusOptions = [
   { value: 'lista_espera', label: 'Lista de Espera' },
 ]
 
+const animalTypeOptions = [
+  { value: '', label: 'Todos os tipos' },
+  { value: 'cachorro', label: 'Cachorro' },
+  { value: 'gato', label: 'Gato' },
+]
+
 export function SearchFilter({
   search,
   status,
   campanha,
+  animaisType,
   onSearchChange,
   onStatusChange,
   onCampanhaChange,
+  onAnimaisTypeChange,
   campanhas,
 }: SearchFilterProps) {
   const campanhaOptions = [
@@ -52,7 +62,12 @@ export function SearchFilter({
           className="pl-10"
         />
       </div>
-      <div className="grid gap-3 grid-cols-2">
+      <div className="grid gap-3 grid-cols-3">
+        <Select
+          value={animaisType}
+          onChange={(e) => onAnimaisTypeChange(e.target.value)}
+          options={animalTypeOptions}
+        />
         <Select
           value={status}
           onChange={(e) => onStatusChange(e.target.value)}

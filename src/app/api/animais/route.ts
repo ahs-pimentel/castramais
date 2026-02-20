@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || ''
     const status = searchParams.get('status') || ''
     const campanha = searchParams.get('campanha') || ''
+    const especie = searchParams.get('especie') || ''
 
     const pageParam = searchParams.get('page')
     const limitParam = searchParams.get('limit')
@@ -38,6 +39,12 @@ export async function GET(request: NextRequest) {
     if (campanha) {
       baseQuery += ` AND a."campanhaId" = $${paramIndex}`
       params.push(campanha)
+      paramIndex++
+    }
+
+    if (especie) {
+      baseQuery += ` AND a.especie = $${paramIndex}`
+      params.push(especie)
       paramIndex++
     }
 

@@ -17,6 +17,7 @@ export default function DashboardPage() {
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
   const [campanha, setCampanha] = useState('')
+  const [animaisType, setAnimaisType] = useState('')
   const [campanhas, setCampanhas] = useState<{ id: string; nome: string; cidade: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'lista' | 'novo'>('lista')
@@ -35,6 +36,7 @@ export default function DashboardPage() {
       if (search) params.set('search', search)
       if (status) params.set('status', status)
       if (campanha) params.set('campanhaId', campanha)
+      if (animaisType) params.set('especie', animaisType)
 
       const [animaisRes, statsRes] = await Promise.all([
         fetch(`/api/animais?${params}`),
@@ -55,7 +57,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [search, status, campanha])
+  }, [search, status, campanha, animaisType])
 
   useEffect(() => {
     const debounce = setTimeout(() => {
@@ -99,9 +101,11 @@ export default function DashboardPage() {
             search={search}
             status={status}
             campanha={campanha}
+            animaisType={animaisType}
             onSearchChange={setSearch}
             onStatusChange={setStatus}
             onCampanhaChange={setCampanha}
+            onAnimaisTypeChange={setAnimaisType}
             campanhas={campanhas}
           />
         </div>
