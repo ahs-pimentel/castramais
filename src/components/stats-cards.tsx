@@ -1,6 +1,6 @@
 'use client'
 
-import { ClipboardList, Clock, Calendar, CheckCircle, Hourglass } from 'lucide-react'
+import { ClipboardList, Clock, Calendar, CheckCircle, Hourglass, Dog, Cat } from 'lucide-react'
 import { Card } from './ui/card'
 import { Stats } from '@/lib/types'
 
@@ -45,10 +45,24 @@ export function StatsCards({ stats }: StatsCardsProps) {
       bgColor: 'bg-amber-50',
       iconColor: 'text-amber-600',
     },
+    {
+      label: 'Cachorros',
+      value: stats.cachorros,
+      icon: Dog,
+      bgColor: 'bg-orange-50',
+      iconColor: 'text-orange-600',
+    },
+    {
+      label: 'Gatos',
+      value: stats.gatos,
+      icon: Cat,
+      bgColor: 'bg-pink-50',
+      iconColor: 'text-pink-600',
+    },
   ]
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-7 gap-4">
       {cards.map((card) => (
         <Card key={card.label} className={card.bgColor}>
           <div className="p-4">

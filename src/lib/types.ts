@@ -70,6 +70,8 @@ export interface Stats {
   agendados: number
   realizados: number
   listaEspera: number
+  cachorros: number
+  gatos: number
 }
 
 export interface Entidade {

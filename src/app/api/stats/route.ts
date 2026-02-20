@@ -13,7 +13,9 @@ export async function GET(request: NextRequest) {
         COUNT(*) FILTER (WHERE status = 'pendente') as pendentes,
         COUNT(*) FILTER (WHERE status = 'agendado') as agendados,
         COUNT(*) FILTER (WHERE status = 'realizado') as realizados,
-        COUNT(*) FILTER (WHERE status = 'lista_espera') as lista_espera
+        COUNT(*) FILTER (WHERE status = 'lista_espera') as lista_espera,
+        COUNT(*) FILTER (WHERE especie = 'cachorro') as cachorros,
+        COUNT(*) FILTER (WHERE especie = 'gato') as gatos
       FROM animais
     `)
 
@@ -25,6 +27,8 @@ export async function GET(request: NextRequest) {
       agendados: parseInt(stats.agendados),
       realizados: parseInt(stats.realizados),
       listaEspera: parseInt(stats.lista_espera),
+      cachorros: parseInt(stats.cachorros),
+      gatos: parseInt(stats.gatos),
     })
   } catch (error) {
     console.error('Erro ao buscar estatísticas:', error)
