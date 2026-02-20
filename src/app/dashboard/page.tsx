@@ -13,7 +13,7 @@ import { gerarPDFAnimais, gerarPDFAgendamentos } from '@/lib/pdf-generator'
 
 export default function DashboardPage() {
   const [animais, setAnimais] = useState<AnimalWithTutor[]>([])
-  const [stats, setStats] = useState<Stats>({ total: 0, pendentes: 0, agendados: 0, realizados: 0, listaEspera: 0 })
+  const [stats, setStats] = useState<Stats>({ total: 0, pendentes: 0, agendados: 0, realizados: 0, listaEspera: 0, cachorros: 0, gatos: 0 })
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
   const [campanha, setCampanha] = useState('')
