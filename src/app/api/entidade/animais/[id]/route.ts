@@ -148,9 +148,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         // Formatar data corretamente interpretando como timezone local, não UTC
         if (animalAtualizado.dataAgendamento) {
           try {
-            const datePart = String(animalAtualizado.dataAgendamento).split('T')[0]
-            const [year, month, day] = datePart.split('-')
-            const dataDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+            // pg retorna DATE como JS Date object
+            const dataVal = animalAtualizado.dataAgendamento
+            const dataDate = dataVal instanceof Date ? dataVal : new Date(dataVal + 'T00:00:00')
             const dataFormatada = dataDate.toLocaleDateString('pt-BR')
             const mensagem = gerarMensagemAgendamento(
               animalAnterior.tutor_nome,
